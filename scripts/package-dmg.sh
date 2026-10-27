@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Packages build/medh5 Viewer.app as a disk image and a zip in dist/.
+# Packages the app scripts/build-app.sh built as a disk image and a zip
+# (in $BUILD_ROOT/dist; see scripts/common.sh).
 #
 #   scripts/package-dmg.sh [--build]
 #
@@ -10,14 +11,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=common.sh
+source "$ROOT/scripts/common.sh"
 if [[ "${1:-}" == "--build" ]]; then "$ROOT/scripts/build-app.sh"; fi
 
 APP_NAME="medh5 Viewer"
 VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
-APP="$ROOT/build/$APP_NAME.app"
+APP="$APP_BUNDLE"
 [[ -d "$APP" ]] || { echo "package-dmg: $APP not found; run scripts/build-app.sh" >&2; exit 1; }
 
-DIST="$ROOT/dist"
+DIST="$DIST_DIR"
 BASENAME="medh5-Viewer-$VERSION-macOS-arm64"
 DMG="$DIST/$BASENAME.dmg"
 ZIP="$DIST/$BASENAME.zip"

@@ -81,4 +81,4 @@ jobs:
         run: |
           NOTES="$(awk -v v="$(cat VERSION | tr -d '[:space:]')" '
             $0 ~ "^## \\[?"v { found=1; next } found && /^## / { exit } found { print }' CHANGELOG.md)"
-          gh release create "$GITHUB_REF_NAME" dist/* --title "medh5 Viewer ${GITHUB_REF_NAME#v}" --notes "$NOTES"
+          gh release create "$GITHUB_REF_NAME" build/dist/* --title "medh5 Viewer ${GITHUB_REF_NAME#v}" --notes "$NOTES"

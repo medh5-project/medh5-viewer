@@ -12,9 +12,15 @@
 
 ```bash
 scripts/build-bridge.sh   # the medh5 engine as a static library (once; ~5 min)
-scripts/build-app.sh      # → build/medh5 Viewer.app
-open "build/medh5 Viewer.app"
+scripts/build-app.sh      # → build/medh5 Viewer.app (the script prints the path)
 ```
+
+Build products go to `build/` — unless the repository is in a folder that
+iCloud Drive (or another file provider) syncs, such as `~/Documents` with
+"Desktop & Documents" on. There every build product would be uploaded, and
+the provider's extended attributes make `codesign` refuse bundles, so the
+scripts build in `~/Library/Caches/medh5-viewer/<repository>-<hash>/`
+instead. Set `MEDH5_VIEWER_BUILD_ROOT` to choose the place yourself.
 
 `scripts/build-bridge.sh` compiles the Rust crate in `bridge/` (which pulls
 the `medh5` engine 2.2.3 from crates.io and the patched HDF5 the medh5
@@ -40,10 +46,17 @@ swift test --package-path Packages/MedH5Kit       # needs the bridge
 (cd bridge && cargo test --release)
 ```
 
+(In an iCloud-synced checkout, give `swift test` a `--scratch-path` outside
+the synced folder, as `scripts/test.sh` does, or code signing of the test
+bundle fails.)
+
+```bash
+```
+
 ## Package
 
 ```bash
-scripts/package-dmg.sh --build   # → dist/medh5-Viewer-<version>-macOS-arm64.{dmg,zip,sha256}
+scripts/package-dmg.sh --build   # → build/dist/medh5-Viewer-<version>-macOS-arm64.{dmg,zip,sha256}
 ```
 
 By default the app is signed ad hoc. To sign for distribution, set

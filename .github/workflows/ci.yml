@@ -53,5 +53,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: medh5-viewer-${{ github.sha }}
-          path: dist/*
+          path: build/dist/*
           retention-days: 14

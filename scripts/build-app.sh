@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Builds "medh5 Viewer.app" into build/.
+# Builds "medh5 Viewer.app" (into build/, or the BUILD_ROOT common.sh picks).
 #
 #   scripts/build-app.sh [--debug] [--rebuild-bridge] [--no-sign]
 #
 # 1. the medh5 engine bridge (scripts/build-bridge.sh), when its
 #    xcframework is missing or --rebuild-bridge is given;
-# 2. the Swift app (`swift build`);
+# 2. the Swift app (`swift build`), in BUILD_ROOT (scripts/common.sh: build/,
+#    or a cache folder when the repository is in iCloud Drive);
 # 3. the bundle: executable, Info.plist (version from VERSION, build number
 #    from the commit count), icons;
 # 4. code signing: ad hoc by default, or with CODESIGN_IDENTITY (a
@@ -13,6 +14,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=common.sh
+source "$ROOT/scripts/common.sh"
 CONFIG=release
 REBUILD_BRIDGE=0
 SIGN=1
@@ -42,11 +45,12 @@ if [[ $REBUILD_BRIDGE == 1 || ! -d "$XCFRAMEWORK" ]]; then
 fi
 
 step "Building the app ($CONFIG)"
-swift build --package-path "$ROOT" -c "$CONFIG" --product "$EXECUTABLE"
-BIN_DIR="$(swift build --package-path "$ROOT" -c "$CONFIG" --show-bin-path)"
+SCRATCH="$(swift_scratch app)"
+swift build --package-path "$ROOT" --scratch-path "$SCRATCH" -c "$CONFIG" --product "$EXECUTABLE"
+BIN_DIR="$(swift build --package-path "$ROOT" --scratch-path "$SCRATCH" -c "$CONFIG" --show-bin-path)"
 
 step "Assembling $APP_NAME.app $VERSION ($BUILD_NUMBER), engine $ENGINE_VERSION"
-APP="$ROOT/build/$APP_NAME.app"
+APP="$APP_BUNDLE"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/$EXECUTABLE" "$APP/Contents/MacOS/$EXECUTABLE"
@@ -56,12 +60,15 @@ sed -e "s/__VERSION__/$VERSION/g" \
     "$ROOT/Resources/Info.plist" > "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 cp "$ROOT/Resources/AppIcon.icns" "$ROOT/Resources/DocumentIcon.icns" "$APP/Contents/Resources/"
-if [[ -d "$ROOT/build/help" ]]; then cp -R "$ROOT/build/help" "$APP/Contents/Resources/Help"; fi
+if [[ -d "$BUILD_ROOT/help" ]]; then cp -R "$BUILD_ROOT/help" "$APP/Contents/Resources/Help"; fi
 # SwiftPM resource bundles, should any target ever declare resources.
 find "$BIN_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP/Contents/Resources/" \;
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 if [[ $SIGN == 1 ]]; then
+  # Extended attributes (Finder info, a file provider's) are not allowed in
+  # a signed bundle.
+  xattr -cr "$APP"
   IDENTITY="${CODESIGN_IDENTITY:--}"
   step "Signing with ${IDENTITY/#-/an ad hoc signature}"
   if [[ "$IDENTITY" == "-" ]]; then
