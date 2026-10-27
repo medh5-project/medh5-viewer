@@ -254,6 +254,7 @@ public final class MedH5Document: NSDocument {
         remaining.removedImages.subtract(saved.removedImages)
         remaining.removedTransforms.subtract(saved.removedTransforms)
         for (id, attrs) in saved.imageAttributes where remaining.imageAttributes[id] == attrs { remaining.imageAttributes[id] = nil }
+        remaining.forgetSavedAdditions(saved)
         edits = remaining
         undoManager?.removeAllActions()
         if !edits.isEmpty { updateChangeCount(.changeDone) }

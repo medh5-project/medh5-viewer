@@ -41,6 +41,11 @@ public struct PendingEdits: Sendable, Equatable {
     public var labelSet: LabelSetChange?
     /// Attribute edits per image (a key with `.null` removes it).
     public var imageAttributes: [String: JSONObject] = [:]
+    /// Grids, images and segmentations the viewer added (NIfTI imports;
+    /// see PendingAdditions.swift).
+    public var newGrids: [String: GridGeometry] = [:]
+    public var newImages: [String: NewImage] = [:]
+    public var importedSegmentations: [String: ImportedSegmentation] = [:]
 
     public init() {}
 
@@ -202,6 +207,7 @@ struct SaveOperation {
             where !edits.removedImages.contains(id) && snapshot.summary.image(id) != nil {
                 try writer.setImageAttributes(id, attrs)
             }
+            try edits.writeAdditions(to: writer)
             for s in snapshot.segmentations {
                 try writer.addSegmentation(id: s.id, grid: s.grid, layers: s.layers, options: s.options)
             }
