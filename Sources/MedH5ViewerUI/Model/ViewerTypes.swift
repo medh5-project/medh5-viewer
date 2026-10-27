@@ -84,25 +84,61 @@ public enum ViewportID: Hashable, Sendable, CustomStringConvertible {
     var isSlice: Bool { self != .volume }
 }
 
-/// The interaction tools (toolbar, Tools menu). Phase A has the viewing
-/// tools; the editing and measuring tools are listed for the menus and
-/// enabled by later phases.
+/// The interaction tools (toolbar, Tools menu): the viewing tools, and the
+/// measuring, segmentation and annotation tools (`SliceTool` handlers).
+/// Whether an editing tool can be used now is the editing session's call
+/// (`EditingSession.availability(_:)`).
 public enum ViewerTool: String, CaseIterable, Identifiable, Sendable {
     case navigate, windowLevel, pan, zoom
     case ruler, angle, roi, brush, eraser, fill, box, point, polyline, contour
 
     public var id: String { rawValue }
 
-    /// Whether the tool works in this version.
-    var isAvailable: Bool {
-        switch self {
-        case .navigate, .windowLevel, .pan, .zoom: return true
-        default: return false
-        }
-    }
+    /// Whether the tool works in this version (all of them do).
+    var isAvailable: Bool { true }
+
+    var isViewingTool: Bool { Self.viewingTools.contains(self) }
 
     static var viewingTools: [ViewerTool] { [.navigate, .windowLevel, .pan, .zoom] }
     static var editingTools: [ViewerTool] { [.ruler, .angle, .roi, .brush, .eraser, .fill, .box, .point, .polyline, .contour] }
+    static var measuringTools: [ViewerTool] { [.ruler, .angle, .roi] }
+    static var segmentationTools: [ViewerTool] { [.brush, .eraser, .fill] }
+    static var annotationTools: [ViewerTool] { [.box, .point, .polyline, .contour] }
+
+    /// Parses the snapshot option spelling (`brush`, `window-level`, …).
+    init?(argument: String) {
+        let a = argument.lowercased().replacingOccurrences(of: "-", with: "").replacingOccurrences(of: "_", with: "")
+        guard let t = Self.allCases.first(where: { $0.rawValue.lowercased() == a }) else { return nil }
+        self = t
+    }
+
+    /// The key as menus write it (`B`, `⇧B`).
+    var keyLabel: String {
+        let (key, shift) = self.key
+        return (shift ? "⇧" : "") + key.uppercased()
+    }
+
+    /// What the tool does (its tooltip, with its key).
+    var help: String {
+        let what: String
+        switch self {
+        case .navigate: what = "click sets the crosshair; ⌥-drag pans, ⌃-drag zooms, ⇧-drag windows"
+        case .windowLevel: what = "drag horizontally for width, vertically for level"
+        case .pan: what = "drag to pan"
+        case .zoom: what = "drag to zoom"
+        case .ruler: what = "drag (or click both ends) to measure a distance"
+        case .angle: what = "click an arm, the vertex and the other arm"
+        case .roi: what = "drag an ellipse or rectangle: area, mean, SD, min, max"
+        case .brush: what = "paint the active class; [ and ] change the radius"
+        case .eraser: what = "erase the active class (or every class); [ and ] change the radius"
+        case .fill: what = "fill or grow a region from the clicked voxel"
+        case .box: what = "drag a box on the slice"
+        case .point: what = "click to place a point or the next keypoint"
+        case .polyline: what = "click vertices; Return or double-click finishes"
+        case .contour: what = "click vertices of a closed outline; click the first, Return or double-click finishes"
+        }
+        return "\(title) (\(keyLabel)): \(what)"
+    }
 
     var title: String {
         switch self {
@@ -163,8 +199,7 @@ public enum ViewerTool: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// The inspector's tabs. Segment editor, Annotations and Measurements are
-/// filled by the editing phase.
+/// The inspector's tabs.
 public enum InspectorTab: String, CaseIterable, Identifiable, Sendable {
     case layers, segmentEditor, annotations, measurements, info
 

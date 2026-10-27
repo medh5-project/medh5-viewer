@@ -82,6 +82,9 @@ final class Workspace {
 
     /// The live viewport controllers (made by the viewer's views).
     @ObservationIgnored let viewports = ViewportRegistry()
+    /// The editing tools' state: active segmentation and annotation, tool
+    /// options, measurements, gestures, undo steps.
+    @ObservationIgnored private(set) lazy var editing = EditingSession(workspace: self)
     @ObservationIgnored private var tracking = false
     @ObservationIgnored private(set) var isShutDown = false
     @ObservationIgnored private var verifyTask: Task<Void, Never>?
@@ -659,21 +662,32 @@ final class Workspace {
         editRevision &+= 1
     }
 
+    /// Re-derives the summary from the file and what the pending edits add
+    /// (a new segmentation or annotation, the label set to be stored), so
+    /// the sidebar, the layers and the views treat unsaved objects as part
+    /// of the sample until a save writes them.
+    func refreshSummary() {
+        let merged = editing.summary(merging: file.summary)
+        guard merged.annotations != summary.annotations || merged.labelSet != summary.labelSet else { return }
+        summary = merged
+        sections = SidebarBuilder.sections(for: merged)
+    }
+
     // MARK: Saving
 
     /// After a save: the file was replaced; read from the new one.
     func didSave(newFile: SampleFile, displayName: String, replacedObjects: Set<String>) {
         let old = file
         file = newFile
-        summary = newFile.summary
+        summary = editing.summary(merging: newFile.summary)
         self.displayName = displayName
-        sections = SidebarBuilder.sections(for: newFile.summary)
+        sections = SidebarBuilder.sections(for: summary)
         attributes = [:]
         store.replaceFile(newFile)
         for id in replacedObjects { store.invalidate(objectID: id) }
         // Layers of objects the save removed leave the views.
         for stack in [primary] + (compare.map { [$0] } ?? []) {
-            for layer in stack.overlays where newFile.summary.image(layer.id) == nil && newFile.summary.annotation(layer.id) == nil {
+            for layer in stack.overlays where summary.image(layer.id) == nil && summary.annotation(layer.id) == nil {
                 stack.remove(layer.id)
             }
         }

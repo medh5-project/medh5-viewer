@@ -18,6 +18,8 @@ enum Preferences {
         static let memoryBudgetGB = "memoryBudgetGB"
         static let engineThreads = "engineThreads"
         static let demoSize = "demoSampleSize"
+        static let defaultBrushRadius = "defaultBrushRadiusMM"
+        static let undoMemoryMB = "undoMemoryMB"
     }
 
     /// 3-D rendering quality when the camera is idle.
@@ -55,6 +57,8 @@ enum Preferences {
             Key.memoryBudgetGB: defaultMemoryBudgetGB,
             Key.engineThreads: defaultEngineThreads,
             Key.demoSize: 128,
+            Key.defaultBrushRadius: 5.0,
+            Key.undoMemoryMB: 512,
         ])
     }
 
@@ -101,6 +105,20 @@ enum Preferences {
     static var engineThreads: Int {
         let n = defaults.integer(forKey: Key.engineThreads)
         return n > 0 ? n : defaultEngineThreads
+    }
+
+    /// The brush radius a new window starts with, in millimetres.
+    static var defaultBrushRadius: Double {
+        let r = defaults.double(forKey: Key.defaultBrushRadius)
+        return r > 0 ? BrushSettings.clamp(r) : 5
+    }
+
+    /// The memory the undo steps of a window's segmentation edits may hold;
+    /// beyond it the oldest steps are dropped (64 MB–16 GB, 512 MB by
+    /// default).
+    static var undoMemoryBytes: Int {
+        let mb = defaults.integer(forKey: Key.undoMemoryMB)
+        return min(16_384, max(64, mb > 0 ? mb : 512)) * 1_048_576
     }
 
     /// Voxels per axis of the demo sample (16–512).

@@ -229,6 +229,18 @@ final class VolumeStore {
         return evicted
     }
 
+    /// Holds a resource made in memory as if it had been loaded (a
+    /// segmentation created in the window, not in the file yet).
+    func put(_ key: ResourceKey, _ resource: any StoredResource) {
+        tasks[key]?.cancel()
+        tasks[key] = nil
+        progress[key] = nil
+        if case .ready(let old)? = states[key] { totalBytes -= old.byteCount }
+        states[key] = .ready(resource)
+        totalBytes += resource.byteCount
+        touch(key)
+    }
+
     /// Drops one resource (it is loaded again when next requested).
     func evict(_ key: ResourceKey) {
         guard !pinned.contains(key) else { return }
