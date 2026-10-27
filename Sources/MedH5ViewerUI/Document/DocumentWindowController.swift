@@ -129,7 +129,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
 
     @objc func selectTool(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String, let tool = ViewerTool(rawValue: raw), tool.isAvailable else { return }
-        viewer.tool = tool
+        workspace.editing.select(tool)
     }
 
     @objc func verifyIntegrity(_ sender: Any?) {
@@ -191,6 +191,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         if MenuValidation.isTypingInTextField(window), item.keyEquivalentModifierMask.isEmpty, !item.keyEquivalent.isEmpty {
             return false
         }
+        if let enabled = validateEditingMenuItem(item) { return enabled }
         switch action {
         case #selector(selectLayout(_:)):
             item.state = (item.representedObject as? String) == viewer.layout.rawValue ? .on : .off

@@ -107,7 +107,7 @@ enum MainMenu {
         let export = NSMenu(title: "Export")
         later(export, "NIfTI…")
         add(export, "Screenshot…", #selector(DocumentWindowController.exportScreenshot(_:)), "e", [.command, .shift])
-        later(export, "Measurements (CSV)…")
+        add(export, "Measurements (CSV)…", #selector(DocumentWindowController.exportMeasurements(_:)))
         let exportItem = add(m, "Export", nil)
         exportItem.submenu = export
         exportItem.isEnabled = true
@@ -191,18 +191,25 @@ enum MainMenu {
 
     static func segmentationMenu() -> NSMenu {
         let m = group("Segmentation")
-        later(m, "New Segmentation…")
-        later(m, "Add Class…")
+        add(m, "New Segmentation…", #selector(DocumentWindowController.newSegmentation(_:)))
+        add(m, "Add Class…", #selector(DocumentWindowController.addSegmentClass(_:)))
         m.addItem(.separator())
         let tools = NSMenu(title: "Tools")
-        for tool in [ViewerTool.brush, .eraser, .fill] { later(tools, tool.title) }
+        for tool in ViewerTool.segmentationTools {
+            let item = add(tools, tool.title, #selector(DocumentWindowController.selectTool(_:)), represented: tool.rawValue)
+            item.toolTip = tool.help
+        }
+        tools.addItem(.separator())
+        add(tools, "Larger Brush", #selector(DocumentWindowController.largerBrush(_:)), "]", [])
+        add(tools, "Smaller Brush", #selector(DocumentWindowController.smallerBrush(_:)), "[", [])
         let toolsItem = add(m, "Tools", nil)
         toolsItem.submenu = tools
         toolsItem.isEnabled = true
         let operations = NSMenu(title: "Operations")
-        for title in ["Threshold…", "Region Growing…", "Morphology…", "Fill Holes", "Keep Largest Component",
-                      "Remove Islands…", "Interpolate Between Slices", "Logical Operations…"] {
-            later(operations, title)
+        for operation in SegmentOperationKind.allCases {
+            let item = add(operations, operation.menuTitle, #selector(DocumentWindowController.segmentOperation(_:)),
+                           represented: operation.rawValue)
+            item.toolTip = operation.help
         }
         let operationsItem = add(m, "Operations", nil)
         operationsItem.submenu = operations
@@ -219,7 +226,7 @@ enum MainMenu {
             let (key, shift) = tool.key
             let item = add(m, tool.title, #selector(DocumentWindowController.selectTool(_:)), key, shift ? [.shift] : [],
                            represented: tool.rawValue)
-            if !tool.isAvailable { item.toolTip = "Comes with the editing tools in a later version" }
+            item.toolTip = tool.help
             if tool == .zoom { m.addItem(.separator()) }
         }
         m.addItem(.separator())
