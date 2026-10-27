@@ -313,7 +313,7 @@ struct ClinicalHistoryView: View {
                 ClinicalEventTable(model: model, records: records)
                     .frame(minWidth: 460, idealWidth: 760)
                 ClinicalSidePanel(model: model, records: records)
-                    .frame(minWidth: 300, idealWidth: 380)
+                    .frame(minWidth: 300, idealWidth: 380, maxWidth: 420)
             }
         }
     }
