@@ -21,6 +21,10 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         let window = DocumentWindow(contentViewController: hosting)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.toolbarStyle = .unified
+        // The toolbar needs the title's width for its own items in a window
+        // of the default size; the title stays in the Window menu, Mission
+        // Control and tabs, and the sidebar names the subject and sample.
+        window.titleVisibility = .hidden
         window.titlebarSeparatorStyle = .automatic
         window.tabbingMode = .automatic
         window.tabbingIdentifier = "medh5-document"

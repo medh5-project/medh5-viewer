@@ -113,10 +113,11 @@ struct DocumentToolbar: ToolbarContent {
         ToolbarItem(placement: .navigation) {
             EditingToolPicker(workspace: workspace)
         }
-        ToolbarItem(placement: .principal) {
-            TimepointMenu(workspace: workspace)
-        }
+        // Packed with the trailing items: centred (principal), the menu kept
+        // space free on both sides and pushed the inspector button into the
+        // overflow of a window of ordinary width.
         ToolbarItemGroup(placement: .primaryAction) {
+            TimepointMenu(workspace: workspace)
             WindowPresetMenu(workspace: workspace)
             VolumeMenu(workspace: workspace)
             Button {

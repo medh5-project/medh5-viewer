@@ -57,8 +57,10 @@ The window has three parts:
 - the **inspector** on the right has five tabs: **Layers**, **Segment
   editor**, **Annotations**, **Measurements** and **Info**.
 
-The toolbar holds the layout buttons, the tools, the timepoint menu, the
-window presets of the base image, the 3-D menu and the inspector button.
+The toolbar holds the layout buttons, the viewing tools, a menu of the
+measuring, segmentation and annotation tools (its icon is the one in use),
+the timepoint menu, the window presets of the base image, the 3-D menu and
+the inspector button.
 The status bar under the views reads out what is under the pointer: the
 world position (in the sample's coordinate system), the voxel index, the
 stored and physical value with units, and the classes of every visible
@@ -560,10 +562,11 @@ Help ▸ Keyboard Shortcuts lists them all. The most used:
 
 ## Troubleshooting
 
-**"medh5 Viewer can't be opened because Apple cannot check it for
-malicious software."** Release builds without a Developer ID signature are
-signed ad hoc. Control-click the app in Applications, choose **Open**, and
-confirm once ([details](INSTALL.md)).
+**"Apple could not verify 'medh5 Viewer' is free of malware."** Release
+builds without a Developer ID signature are signed ad hoc, and Gatekeeper
+stops them the first time they open. Open **System Settings ▸ Privacy &
+Security** and click **Open Anyway** (on macOS 14, Control-clicking the app
+and choosing **Open** also works) ([details](INSTALL.md)).
 
 **The file opens read-only.** The banner says why: a later format version
 (the app shows the engine's projection), a failed integrity check (repair
