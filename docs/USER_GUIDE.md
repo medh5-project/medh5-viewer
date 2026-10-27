@@ -133,7 +133,17 @@ convention. The letters on the edges of each view (A, P, R, L, S, I) name
 the anatomical direction at that edge; on an oblique plane they combine
 (for example `LA`).
 
-A 2-D image (a radiograph) shows in a single view of its own plane.
+A 2-D image (a radiograph, a photograph) shows in a single view of its own
+plane, marked **2-D**, with no anatomical letters: its plane is not a
+slice of the patient.
+
+### Thick slab
+
+**View ▸ Thick Slab** projects the images of the slice views over a slab
+centred on the plane: **maximum** (MIP), **minimum** (MinIP) or
+**average** intensity, 5 to 40 mm thick. The corner of each view names the
+projection while it is on. Segmentations still draw at the plane itself;
+geometric annotations within the slab are shown.
 
 ### Moving around
 
@@ -236,6 +246,106 @@ In the Layers tab (with the 3-D view active):
 
 ![The 3-D view with label surfaces](images/volume.png)
 
+## Editing segmentations
+
+The **Segment editor** tab of the inspector paints label maps. Pick the
+segmentation to edit, or **New…** to create one on a grid of the sample
+(choose the classes it can express; none of them counts as examined until
+you paint it). A new segmentation is held in memory and written by the
+next save.
+
+![Painting a lesion in the segment editor](images/segment-editor.png)
+
+### Classes and coverage
+
+The **Classes** list shows each class with its colour, voxel count and
+volume, and whether it was **examined** or the segmentation **can express
+only** it. Painting a class marks it examined. Right-click a class to
+paint with it, or to **Mark Examined** or **Mark Not Examined** (only for
+a class with no voxels: absence means nothing for a class nobody looked
+for). The lock keeps every tool off a class's voxels; the eye hides it.
+**Add Class…** adds a class from the label set, or a new class with its
+colour and an optional ontology code — it joins the label set too.
+
+### Painting
+
+| Tool | Key | Does |
+|---|---|---|
+| Brush | B | paints the active class |
+| Eraser | E | erases the active class (or every unlocked class) |
+| Fill | F | fills the connected region under the click, in the slice or the volume |
+
+The brush's **radius** is in millimetres: [ and ] change it while you
+paint. Its **shape** is a 2-D disc on the slice or a 3-D sphere. The
+**paint policy** decides what the brush may cover: **Overwrite** anything,
+**Only empty** voxels, or **Only inside** another class. **Only where the
+image is in a range** limits the brush to voxels whose value lies in a
+range (for example 100–400 HU), so a stroke follows a structure's edge.
+
+Fill takes the connected voxels that hold what the clicked voxel holds,
+or whose value is within a tolerance of it, or in a range.
+
+### Operations
+
+The **Operations** section applies one operation to the active class:
+
+- **Threshold** — the class where the base image's value is in a range,
+  in the volume or the current slice;
+- **Region Growing** — from the crosshair over connected voxels close to
+  its value (or in a range), in the slice or the volume;
+- **Morphology** — dilate, erode, open or close, in 3-D or slice by slice;
+- **Fill Holes** — fills the cavities of the class;
+- **Keep Largest Component**, and **Remove Islands** smaller than a volume;
+- **Interpolate Between Slices** — fills the slices between those holding
+  the class, morphing its shape;
+- **Logical Operations** — copy, move, subtract, intersect, swap or clear,
+  between the active class and another.
+
+### Undo
+
+Every stroke and every operation is one step of **Edit ▸ Undo** (⌘Z),
+which restores the voxels and the rest of the document's changes together.
+The steps of a window's segmentation edits share a memory budget (Settings
+▸ Editing); beyond it the oldest steps can no longer be undone, the newest
+always can. Saving clears the undo history.
+
+## Geometric annotations
+
+The **Annotations** tab draws on the active slice view:
+
+| Tool | Key | Draws |
+|---|---|---|
+| Box | ⇧B | drag a box; boxes lie on voxel edges of the base image's grid |
+| Point | ⇧P | click a point (in a keypoint annotation, the next keypoint of the last object) |
+| Polyline | ⇧L | click the vertices; Return or a double-click finishes, ⌫ removes the last vertex, Esc cancels |
+| Contour | ⇧C | click the vertices of a closed outline; click the first vertex, or press Return, to close it |
+
+New items go into the annotation chosen at the top — by default the
+topmost one of that kind shown, or a new one when there is none — with the
+class chosen under **New Items**. The **Items** list shows each item with
+its class and position: click one to jump to it, change the class of the
+selection, or delete it (⌫ in the view works too). Edit ▸ Cut, Copy, Paste
+and Select All work on items. An annotation the clinical history attests
+cannot be changed.
+
+![Drawing annotations](images/annotations.png)
+
+## Measurements
+
+| Tool | Key | Measures |
+|---|---|---|
+| Ruler | M | a distance in millimetres |
+| Angle | A | an angle in degrees: click the end of one arm, the vertex, then the end of the other |
+| ROI | O | an ellipse or a rectangle: area, and the mean, SD, minimum and maximum of the image inside |
+
+The **Measurements** tab lists them; copy them, delete them, or export
+them with **Export CSV…** (also File ▸ Export ▸ Measurements). Measurements
+belong to the window and are not saved in the file. To keep rulers and
+angles, **Save as Polyline Annotation** turns them into a polyline
+annotation of the sample.
+
+![Rulers, an angle and ROIs](images/measurements.png)
+
 ## The sample's records
 
 Three windows of the Window menu edit what the sample records about
@@ -292,6 +402,8 @@ vouch for the selection, and **uncertifiable** when a later revision's
 availability is unknown or straddles the cutoff, so whether an earlier
 version was still current cannot be known. This window does not edit the
 records.
+
+![The clinical history at 36 hours after the baseline scan](images/clinical.png)
 
 ## Checking a file
 
@@ -411,6 +523,8 @@ what a curator expects.
   needed.
 - **Performance**: how many threads one engine call uses to decompress and
   hash (the default is the number of performance cores).
+- **Editing**: the brush radius a new window starts with, and the memory
+  the undo steps of segmentation edits may hold (512 MB by default).
 
 ## Keyboard shortcuts
 
@@ -420,6 +534,12 @@ Help ▸ Keyboard Shortcuts lists them all. The most used:
 |---|---|
 | 1 – 5 | layouts: single, 1 × 3, 2 × 2, 3-D only, compare |
 | V, W, H, Z | Navigate, Window/Level, Pan, Zoom tools |
+| M, A, O | Ruler, Angle, ROI |
+| B, E, F | Brush, Eraser, Fill |
+| [ / ] | smaller / larger brush |
+| ⇧B, ⇧P, ⇧L, ⇧C | Box, Point, Polyline, Contour |
+| ⌘Z / ⇧⌘Z | undo / redo |
+| ⌫ | delete the selected items or measurements |
 | ⌘0 | reset the view |
 | ⌘= / ⌘- | zoom in / out |
 | ⌥⌘A / ⌥⌘C / ⌥⌘S | single view: axial / coronal / sagittal |

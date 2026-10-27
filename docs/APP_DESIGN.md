@@ -221,8 +221,9 @@ accepting it.
 - **Edit**: Undo/Redo, Cut/Copy/Paste (measurements, annotation items),
   Delete, Select All (annotation items).
 - **View**: layouts, Anatomical/Aligned planes, Show Crosshair, Show
-  Overlays, Show Orientation Labels, Interpolation, Reset View ⌘0, Zoom
-  In/Out, Toggle Sidebar, Toggle Inspector, Enter Full Screen.
+  Overlays, Show Orientation Labels, Interpolation, Thick Slab (MIP,
+  MinIP, average; 5–40 mm), Reset View ⌘0, Zoom In/Out, Toggle Sidebar,
+  Toggle Inspector, Enter Full Screen.
 - **Image**: window presets, auto window, colormap, invert, next/previous
   timepoint, next/previous channel.
 - **Segmentation**: New Segmentation, Add Class, tools, operations, Show
