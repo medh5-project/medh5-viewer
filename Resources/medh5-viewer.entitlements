@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Hardened runtime with no exceptions: the app runs no JIT and loads no
+	     unsigned code. Metal shaders compile through the system's Metal
+	     compiler, which needs no entitlement. The app is not sandboxed: the
+	     medh5 engine amends a file copy-on-write beside it, which a sandboxed
+	     app could not do for files outside its container. -->
+</dict>
+</plist>

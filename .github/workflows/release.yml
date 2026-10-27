@@ -1,0 +1,84 @@
+name: Release
+
+# Pushing a tag vX.Y.Z builds, tests and packages the app and publishes a
+# GitHub release with the disk image, the zip and their checksums.
+#
+# Signing and notarization are optional. Without the secrets below the app is
+# signed ad hoc (Gatekeeper asks the user to confirm the first launch; see
+# docs/INSTALL.md). With them:
+#   MACOS_CERTIFICATE_P12      base64 of a "Developer ID Application" .p12
+#   MACOS_CERTIFICATE_PASSWORD its password
+#   CODESIGN_IDENTITY          e.g. "Developer ID Application: Name (TEAMID)"
+#   NOTARY_APPLE_ID, NOTARY_TEAM_ID, NOTARY_PASSWORD (app-specific password)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Toolchains
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Version matches the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          test "v$(tr -d '[:space:]' < VERSION)" = "${GITHUB_REF_NAME}" || {
+            echo "VERSION says $(cat VERSION), the tag is ${GITHUB_REF_NAME}"; exit 1; }
+
+      - name: Import the signing certificate
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        if: env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          security create-keychain -p "" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "" "$KEYCHAIN"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain
+
+      - name: Notary profile
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        if: env.NOTARY_APPLE_ID != ''
+        run: |
+          xcrun notarytool store-credentials medh5-notary --apple-id "$NOTARY_APPLE_ID" \
+            --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD"
+          echo "NOTARY_PROFILE=medh5-notary" >> "$GITHUB_ENV"
+
+      - name: Build, test, package
+        env:
+          CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
+        run: |
+          scripts/build-bridge.sh
+          scripts/test.sh
+          scripts/build-app.sh
+          scripts/package-dmg.sh
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="$(awk -v v="$(cat VERSION | tr -d '[:space:]')" '
+            $0 ~ "^## \\[?"v { found=1; next } found && /^## / { exit } found { print }' CHANGELOG.md)"
+          gh release create "$GITHUB_REF_NAME" dist/* --title "medh5 Viewer ${GITHUB_REF_NAME#v}" --notes "$NOTES"

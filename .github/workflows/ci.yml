@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and test (macOS, Apple silicon)
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchains
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          sw_vers
+          xcodebuild -version
+          swift --version
+          rustc --version
+          cmake --version | head -1
+
+      - name: Cache the bridge build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            bridge/target
+          key: bridge-${{ runner.os }}-${{ hashFiles('bridge/Cargo.lock', 'bridge/Cargo.toml') }}
+          restore-keys: bridge-${{ runner.os }}-
+
+      - name: Build the bridge
+        run: scripts/build-bridge.sh
+
+      - name: Test everything
+        run: scripts/test.sh
+
+      - name: Build the app bundle
+        run: scripts/build-app.sh
+
+      - name: Package
+        run: scripts/package-dmg.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: medh5-viewer-${{ github.sha }}
+          path: dist/*
+          retention-days: 14
