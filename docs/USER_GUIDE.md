@@ -98,7 +98,12 @@ Click the **eye** button of an image or annotation to show or hide it in
 the active view. Double-click an image to make it the **base image**: the
 one the views are framed on and whose window/level the presets change.
 Select a row to see everything about it in the **Info** tab. Right-click a
-row for its actions.
+row for its actions: export as NIfTI, remove, or open the editor of a
+curation record. Double-clicking a curation row opens its editor too.
+
+While the sample has unsaved changes, an **Unsaved Changes** section at the
+top lists them: imported images and segmentations, removed objects (struck
+through in the tree), edits to the document and the label set.
 
 ## Viewing images
 
@@ -231,6 +236,157 @@ In the Layers tab (with the 3-D view active):
 
 ![The 3-D view with label surfaces](images/volume.png)
 
+## The sample's records
+
+Three windows of the Window menu edit what the sample records about
+itself. They belong to the document: they close with it, and what you
+apply in them joins the document's unsaved changes, so Edit ▸ Undo takes it
+back and Save writes it.
+
+### The document
+
+**Window ▸ Document** (⌥⌘D) edits the sample's document: the forms
+**Identity** (sample and subject ids, sex, laterality, body part),
+**Cohort**, **Timepoints** (add a timepoint, rename one you added, remove
+one nothing uses), **Quality** and **De-identification**; the **Outline**,
+the whole document as a tree; and **JSON**, the document as text.
+
+Your changes are a draft until you click **Apply**. The engine then checks
+the draft as it would store it: it writes it into a temporary copy of the
+saved file and validates the copy. If the engine refuses the draft, the
+window shows its message and nothing changes; **Revert** throws the draft
+away. On a large file Apply takes about as long as a save.
+
+### The label set
+
+**Window ▸ Label Set** lists the sample's classes: id, key, name,
+category, side, parents, and how many annotations use each. Select a class
+to edit its key, name, colour, category, laterality, parents and codes
+(bindings to vocabularies such as SNOMED CT, RadLex, FMA or UBERON). **+**
+adds a class and **−** removes one.
+
+A class that is in use — by a stored or unsaved annotation, a segmentation
+you are editing, a child class, a skeleton or a relation — cannot be
+removed, and its id cannot change. **Apply** has the engine check the set
+(for example, parents that form a cycle are refused).
+
+### The clinical history
+
+**Window ▸ Clinical History** shows the clinical records of a sample with
+the `clinical` profile, on the subject's clock:
+
+- a **timeline** with a row for each kind of event (imaging, document,
+  observation, assessment, other), marking when each event happened (with
+  its uncertainty) and when it became available, the imaging timepoints,
+  and the cutoff;
+- the **events** in a table, the selected event's details and links;
+- the selected event's **documents**, with the spans annotations are
+  grounded in highlighted.
+
+The **Known at** slider sets a cutoff, and **Jump to** puts it at a scan.
+The window then shows what the engine's strict prospective selection gives
+at that moment: the events and documents a model may see are checked, the
+rest are greyed out with the reason (after the cutoff, or superseded by a
+later version). The badge beside it is **certified** when the engine can
+vouch for the selection, and **uncertifiable** when a later revision's
+availability is unknown or straddles the cutoff, so whether an earlier
+version was still current cannot be known. This window does not edit the
+records.
+
+## Checking a file
+
+**Tools ▸ Validate…** (⇧⌘V) runs the medh5 validator on the saved file at
+the level you pick — **Structural**, **Semantic**, **Integrity** (the
+default) or **Strict** — exactly as `medh5 validate` does. Findings are
+grouped by severity, errors first, each with its code (such as `E304` or
+`W914`), where in the file it is, and what is wrong; a warning the level
+promotes to an error is marked so. Filter by code, path or message, or show
+only errors or warnings. **Copy** (⌘C) copies the selected findings and
+**Export JSON…** saves the whole report. **Validate Again** runs it again,
+for example after you save. With unsaved changes, the window reminds you
+that it checked the saved file; for a member of a collection it validates
+the whole collection.
+
+**Tools ▸ Verify Integrity** recomputes the digest of every object and the
+sample's `content_id`, and lists each object with its stored digest and
+whether it matches. Problems are listed at the top; the list can be
+filtered, copied and exported as JSON.
+
+## Importing and exporting
+
+### NIfTI images
+
+**File ▸ Import ▸ NIfTI Image…** adds a `.nii` or `.nii.gz` image to the
+sample. The sheet shows the file's voxels, spacing and origin; choose the
+image's id, its modality and its value units. The image goes onto a grid
+of the sample only when it lies exactly on it (the same shape and
+geometry); otherwise it gets a new grid of its own, at a timepoint you
+choose (or a new one) and in a **new frame of reference** unless you pick
+an existing frame. An image in a new frame is not aligned with anything
+until a transform connects the frames.
+
+### NIfTI segmentations
+
+**File ▸ Import ▸ NIfTI Segmentation…** adds a label map (0 is background,
+every other value a class id) onto the grid of the sample it fits. Classes
+missing from the label set can be added to it. Choose which classes were
+**looked for** — the classes present in the file, or every class of the
+label set: coverage is recorded, never assumed, so a class looked for and
+absent is an examined absence, and a class not looked for stays unknown.
+
+Imported images and segmentations are listed under **Unsaved Changes** at
+the top of the sidebar and written when you save. They are drawn once the
+sample is saved.
+
+### Exporting
+
+**File ▸ Export ▸ NIfTI…** (or **Export as NIfTI…** on a sidebar row)
+writes the image or voxel annotation selected in the sidebar — otherwise
+the base image — as NIfTI, through the medh5 engine:
+
+- an image in **physical values** (the rescale applied) or as stored;
+- a voxel annotation as a **label map** of all its classes, or **one
+  class** as a 0/1 mask.
+
+The export reads the saved file, so unsaved changes to that object are not
+included. Geometric annotations have no NIfTI form.
+
+**File ▸ Export ▸ Screenshot…** (⇧⌘E) saves the views as a PNG image.
+
+### Removing
+
+Right-click an image, annotation or transform in the sidebar and choose
+**Remove…**. The app refuses to remove something the sample still needs,
+and says what holds it:
+
+- an image or annotation the clinical history refers to (an event version
+  never changes, and neither does what it attests);
+- an annotation that holds another's ignore region, or that others are
+  derived from;
+- a transform that another transform names as its inverse or a component.
+
+A removal that reaches further asks first and says what follows: an
+image's samples and acquisition parameters go, a valid-region mask's
+images lose their valid region, a transform's frames are no longer
+registered. A removal is written when you save; until then the row is
+struck through and Edit ▸ Undo takes it back.
+
+### Storage
+
+- **Tools ▸ Build Sampling Index…** stores, for the voxel annotations you
+  choose, the voxel coordinates of each class that a training data loader
+  samples from (how many per class, and the random seed, are yours to set).
+- **Tools ▸ Recompress…** rewrites the images with a codec profile:
+  **archive** (smallest), **balanced** (the default), **portable**
+  (readable without HDF5 plugins) or **training** (fastest to decompress),
+  optionally choosing the chunk shapes again.
+
+Both write a new file and open it, or replace the document's file after
+asking — which needs a saved document with no unsaved changes.
+
+**File ▸ New Collection from Samples…** packs several samples into one
+collection (`.medh5c`) and opens it.
+
 ## Saving
 
 **Save** (⌘S) writes your changes into the file. The app never rewrites a
@@ -277,6 +433,8 @@ Help ▸ Keyboard Shortcuts lists them all. The most used:
 | ⌥⇧⌘H | hide all segmentations |
 | ⌃⌘S | show or hide the sidebar |
 | ⌥⌘I | show or hide the inspector |
+| ⇧⌘V | validate the saved file |
+| ⌥⌘D | the document editor |
 | ⇧⌘E | export a screenshot |
 | ⇧⌘N | new sample from NIfTI |
 
