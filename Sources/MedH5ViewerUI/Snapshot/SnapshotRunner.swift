@@ -69,6 +69,8 @@ final class SnapshotRunner {
         }
         guard let workspace = (doc as? MedH5Document)?.workspace else { throw SnapshotError("no workspace") }
         configure(workspace)
+        if let script = options.editScript { try await EditScript.run(script, workspace: workspace) }
+        if let tool = options.tool { workspace.viewer.tool = tool }
         try await settle(window: window, workspace: workspace)
         try write(window: window, workspace: workspace)
     }

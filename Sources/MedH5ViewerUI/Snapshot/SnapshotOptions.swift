@@ -43,6 +43,11 @@ public struct SnapshotOptions: Equatable {
     /// Another window to capture instead of a document: `welcome` or
     /// `settings`.
     public var auxiliaryWindow: String?
+    /// The tool selected (after a scripted edit).
+    public var tool: ViewerTool?
+    /// A scripted edit made before the capture, to look at the editing
+    /// tools (QA, tests): `segment`, `annotate`, `measure` or `all`.
+    public var editScript: String?
 
     public init(source: Source, outDirectory: URL) {
         self.source = source
@@ -61,7 +66,8 @@ public struct SnapshotOptions: Equatable {
       --size WxH                           window content size in points (1600x1000)
       --appearance dark|light              the window chrome's appearance
       --select <item>                      select a sidebar item (id, object or title)
-      --inspector layers|info|…            the inspector tab
+      --inspector layers|segment-editor|annotations|measurements|info
+                                           the inspector tab
       --overlays all|<id,id,…>             add annotations as overlays
       --plane axial|coronal|sagittal       the plane of the single view / compare
       --active <view>                      the active view: axial, coronal, sagittal, 3d, left, right
@@ -73,6 +79,11 @@ public struct SnapshotOptions: Equatable {
       --window welcome|settings            capture that window instead of a document
       --3d-mode dvr|mip|minip|average|isosurface
       --3d-surfaces raycast|meshes         how segmentations show in 3-D
+      --tool <name>                        the tool: navigate, window-level, pan, zoom, ruler, angle,
+                                           roi, brush, eraser, fill, box, point, polyline, contour
+      --edit segment|annotate|measure|all  a scripted edit before the capture (QA): a new
+                                           segmentation painted, annotation items drawn,
+                                           measurements made, gestures left in progress
     """
 
     struct ParseError: Error, CustomStringConvertible {
@@ -165,6 +176,14 @@ public struct SnapshotOptions: Equatable {
                 let v = try value(a).lowercased()
                 guard ["raycast", "meshes"].contains(v) else { throw ParseError(description: "unknown surface style \(v)") }
                 o.surfaces = v
+            case "--tool":
+                let v = try value(a)
+                guard let t = ViewerTool(argument: v) else { throw ParseError(description: "unknown tool \(v)") }
+                o.tool = t
+            case "--edit":
+                let v = try value(a).lowercased()
+                guard EditScript.names.contains(v) else { throw ParseError(description: "unknown edit script \(v)") }
+                o.editScript = v
             case "--no-verify": o.verify = false
             case "--no-sidebar": o.hideSidebar = true
             case "--no-inspector": o.hideInspector = true
