@@ -398,6 +398,10 @@ final class EditingSession {
             if valid != selectedItems { selectedItems = valid }
         }
         workspace.noteVoxelsChanged()
+        // The sidebar's Unsaved Changes and the panels (document, label set)
+        // follow the edits — also those made before the sidebar first
+        // appeared and began to follow the undo manager.
+        workspace.auxiliary.noteEditsChanged()
     }
 
     /// Layers of unsaved objects an undo took away leave the views, and come

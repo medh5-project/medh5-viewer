@@ -188,3 +188,34 @@ final class PendingRemovalTests: XCTestCase {
         XCTAssertNil(s.idProblem("other"))
     }
 }
+
+/// What the editing tools change reaches the sidebar's Unsaved Changes and
+/// the panels (the document and label set editors), which follow the
+/// document's edits through `AuxiliaryState`.
+@MainActor
+final class EditsRevisionTests: XCTestCase {
+    func testTheToolsEditsReachThePanels() async throws {
+        let dir = TemporaryDirectory("edits-revision")
+        let doc = try openDocument(Synthetic.copy(in: dir))
+        defer { doc.close() }
+        let w = try XCTUnwrap(doc.workspace)
+        let s = w.editing
+        // At once, before the run loop turns: the sidebar has not appeared
+        // and follows no undo manager yet (a snapshot's scripted edit).
+        var revision = w.auxiliary.editsRevision
+        var request = s.defaultNewSegmentation()
+        request.id = "drawn"
+        try s.createSegmentation(request)
+        XCTAssertGreaterThan(w.auxiliary.editsRevision, revision, "a new segmentation")
+        XCTAssertEqual(PendingChangeList.items(of: w).map(\.title), ["drawn"])
+        await settle()
+        revision = w.auxiliary.editsRevision
+        _ = try s.createClass(name: "Cyst", color: RGBA8(20, 200, 120), segmentation: "drawn")
+        await settle()
+        XCTAssertGreaterThan(w.auxiliary.editsRevision, revision, "a class added to the label set")
+        revision = w.auxiliary.editsRevision
+        doc.undoManager?.undo()
+        await settle()
+        XCTAssertGreaterThan(w.auxiliary.editsRevision, revision, "an undo")
+    }
+}
