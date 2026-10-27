@@ -23,6 +23,14 @@ final class SnapshotTests: XCTestCase {
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo"]), "needs --out")
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--layout", "5x5"]))
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--out", "o"]), "needs a source")
+        let panel = try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--window", "clinical", "--cutoff", "36h",
+                                               "--select", "report0_v2"])
+        XCTAssertEqual(panel.auxiliaryWindow, "clinical")
+        XCTAssertEqual(panel.clinicalCutoffHours, 36)
+        for name in ["validate", "verify", "document", "label-set", "help", "shortcuts", "acknowledgements", "import-nifti"] {
+            XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--out", "o", "--window", name]).auxiliaryWindow, name)
+        }
+        XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--window", "nope"]))
     }
 
     /// Runs the built executable in snapshot mode on a small demo.

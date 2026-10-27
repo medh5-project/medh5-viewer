@@ -41,8 +41,10 @@ public struct SnapshotOptions: Equatable {
     public var volumeMode: String?
     public var surfaces: String?
     /// Another window to capture instead of a document: `welcome` or
-    /// `settings`.
+    /// `settings`, or a panel or app window (`AuxiliarySnapshot.windows`).
     public var auxiliaryWindow: String?
+    /// The clinical window's cutoff, in hours of the subject clock.
+    public var clinicalCutoffHours: Double?
 
     public init(source: Source, outDirectory: URL) {
         self.source = source
@@ -71,6 +73,10 @@ public struct SnapshotOptions: Equatable {
       --no-verify                          skip the integrity check
       --timeout <seconds>                  give up after this long (120)
       --window welcome|settings            capture that window instead of a document
+      --window validate|verify|document|label-set|clinical|help|shortcuts|acknowledgements|import-nifti
+                                           a panel of the document, or an app window; --select picks a
+                                           page, class, event or filter in it
+      --cutoff <hours>                     the clinical window's cutoff on the subject clock
       --3d-mode dvr|mip|minip|average|isosurface
       --3d-surfaces raycast|meshes         how segmentations show in 3-D
     """
@@ -155,7 +161,9 @@ public struct SnapshotOptions: Equatable {
                 o.timeout = t
             case "--window":
                 let v = try value(a).lowercased()
-                guard ["welcome", "settings", "preferences"].contains(v) else { throw ParseError(description: "unknown window \(v)") }
+                guard ["welcome", "settings", "preferences"].contains(v) || AuxiliarySnapshot.windows.contains(v) else {
+                    throw ParseError(description: "unknown window \(v)")
+                }
                 o.auxiliaryWindow = v == "preferences" ? "settings" : v
             case "--3d-mode":
                 let v = try value(a).lowercased()
@@ -165,6 +173,10 @@ public struct SnapshotOptions: Equatable {
                 let v = try value(a).lowercased()
                 guard ["raycast", "meshes"].contains(v) else { throw ParseError(description: "unknown surface style \(v)") }
                 o.surfaces = v
+            case "--cutoff":
+                let v = try value(a)
+                guard let h = Double(v.lowercased().replacingOccurrences(of: "h", with: "")) else { throw ParseError(description: "bad cutoff \(v)") }
+                o.clinicalCutoffHours = h
             case "--no-verify": o.verify = false
             case "--no-sidebar": o.hideSidebar = true
             case "--no-inspector": o.hideInspector = true

@@ -48,7 +48,7 @@ When no document is open, the welcome window offers:
 
 ## The document window
 
-![A sample in the 2 × 2 layout](images/window-2x2.png)
+![A sample in the 2 × 2 layout](images/viewer.png)
 
 The window has three parts:
 
@@ -230,9 +230,6 @@ In the Layers tab (with the 3-D view active):
   to cut into the volume; **Reset** returns to the default view.
 
 ![The 3-D view with label surfaces](images/volume.png)
-
-<!-- B1: Editing segmentations, Geometric annotations, Measurements -->
-<!-- B2: The sample's records, Checking a file, Importing and exporting -->
 
 ## Saving
 

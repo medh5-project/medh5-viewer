@@ -4,7 +4,9 @@ import MedH5Render
 
 /// The main menu, built in code (no nib): File, Edit, View, Image,
 /// Segmentation, Tools, Window, Help. Items of features that come with the
-/// editing phase are present and disabled (no action).
+/// editing phase are present and disabled (no action). The document's
+/// panel and file commands are the document's (`MedH5Document+Windows`):
+/// it is in the responder chain of its main window and of its panels.
 @MainActor
 enum MainMenu {
     static func build() -> NSMenu {
@@ -85,6 +87,7 @@ enum MainMenu {
     static func fileMenu() -> NSMenu {
         let m = group("File")
         add(m, "New Sample from NIfTI…", #selector(AppDelegate.newSampleFromNIfTI(_:)), "n", [.command, .shift])
+        add(m, "New Collection from Samples…", #selector(AppDelegate.newCollectionFromSamples(_:)))
         add(m, "Open…", #selector(NSDocumentController.openDocument(_:)), "o")
         let recent = NSMenu(title: "Open Recent")
         add(recent, "Clear Menu", #selector(NSDocumentController.clearRecentDocuments(_:)))
@@ -99,13 +102,13 @@ enum MainMenu {
         add(m, "Revert to Saved", #selector(NSDocument.revertToSaved(_:)))
         m.addItem(.separator())
         let importMenu = NSMenu(title: "Import")
-        later(importMenu, "NIfTI Image…")
-        later(importMenu, "NIfTI Segmentation…")
+        add(importMenu, "NIfTI Image…", #selector(MedH5Document.importNIfTIImage(_:)))
+        add(importMenu, "NIfTI Segmentation…", #selector(MedH5Document.importNIfTISegmentation(_:)))
         let importItem = add(m, "Import", nil)
         importItem.submenu = importMenu
         importItem.isEnabled = true
         let export = NSMenu(title: "Export")
-        later(export, "NIfTI…")
+        add(export, "NIfTI…", #selector(MedH5Document.exportNIfTI(_:)))
         add(export, "Screenshot…", #selector(DocumentWindowController.exportScreenshot(_:)), "e", [.command, .shift])
         later(export, "Measurements (CSV)…")
         let exportItem = add(m, "Export", nil)
@@ -223,10 +226,10 @@ enum MainMenu {
             if tool == .zoom { m.addItem(.separator()) }
         }
         m.addItem(.separator())
-        later(m, "Validate…", "v", [.command, .shift])
-        add(m, "Verify Integrity", #selector(DocumentWindowController.verifyIntegrity(_:)))
-        later(m, "Build Sampling Index…")
-        later(m, "Recompress…")
+        add(m, "Validate…", #selector(MedH5Document.showValidation(_:)), "v", [.command, .shift])
+        add(m, "Verify Integrity", #selector(MedH5Document.verifyIntegrity(_:)))
+        add(m, "Build Sampling Index…", #selector(MedH5Document.buildSamplingIndex(_:)))
+        add(m, "Recompress…", #selector(MedH5Document.recompressSample(_:)))
         return m
     }
 
@@ -234,6 +237,10 @@ enum MainMenu {
         let m = group("Window")
         add(m, "Minimize", #selector(NSWindow.performMiniaturize(_:)), "m")
         add(m, "Zoom", #selector(NSWindow.performZoom(_:)))
+        m.addItem(.separator())
+        add(m, "Document", #selector(MedH5Document.showDocumentEditor(_:)), "d", [.command, .option])
+        add(m, "Label Set", #selector(MedH5Document.showLabelSetEditor(_:)))
+        add(m, "Clinical History", #selector(MedH5Document.showClinicalHistory(_:)))
         m.addItem(.separator())
         add(m, "Welcome to medh5 Viewer", #selector(AppDelegate.showWelcome(_:)), "1", [.command, .shift])
         m.addItem(.separator())
@@ -249,6 +256,7 @@ enum MainMenu {
         m.addItem(.separator())
         add(m, "Open Demo Sample", #selector(AppDelegate.openDemoSample(_:)))
         m.addItem(.separator())
+        add(m, "Acknowledgements", #selector(AppDelegate.showAcknowledgements(_:)))
         add(m, "Report an Issue", #selector(AppDelegate.reportIssue(_:)))
         return m
     }
