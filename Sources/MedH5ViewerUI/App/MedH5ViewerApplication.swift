@@ -38,6 +38,11 @@ public enum MedH5ViewerApplication {
             let url = URL(fileURLWithPath: a)
             if FileManager.default.fileExists(atPath: url.path) { files.append(url) }
         }
+        // Only those files are opened. AppKit would also open leftover
+        // arguments as documents, pairing every "-option" with the argument
+        // after it: a flag without a value (`--no-verify --timeout 40`)
+        // leaves "40" over, which it then reports as a missing document.
+        UserDefaults.standard.register(defaults: ["NSTreatUnknownArgumentsAsOpen": false])
         MainActor.assumeIsolated {
             let app = NSApplication.shared
             _ = DocumentController()
