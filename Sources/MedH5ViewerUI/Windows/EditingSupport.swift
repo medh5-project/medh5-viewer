@@ -315,11 +315,16 @@ struct PlainTextView: NSViewRepresentable {
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: PlainTextView
         var revealed: NSRange?
+        /// Typing is undone here, not on the window's (the document's) undo
+        /// manager, where it would mark the document edited.
+        private let textUndo = UndoManager()
         init(_ parent: PlainTextView) { self.parent = parent }
 
         func textDidChange(_ notification: Notification) {
             guard let view = notification.object as? NSTextView else { return }
             parent.text = view.string
         }
+
+        func undoManager(for view: NSTextView) -> UndoManager? { textUndo }
     }
 }

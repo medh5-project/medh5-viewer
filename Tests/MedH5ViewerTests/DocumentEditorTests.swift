@@ -195,4 +195,27 @@ final class DocumentEditorTests: XCTestCase {
         XCTAssertEqual(model.refusal, ["This document is read-only."])
         XCTAssertTrue(doc.pendingEdits.isEmpty)
     }
+
+    /// A panel is a window of its document: one per panel, closing with it,
+    /// its undo manager the document's — but text typed into its fields is
+    /// undone on its own, so typing never marks the document edited.
+    func testPanelsAreTheDocumentsWindowsAndKeepTextUndoToThemselves() throws {
+        let dir = TemporaryDirectory("panels")
+        let doc = try MedH5Document.openForTest(Fixtures.demoCopy(in: dir))
+        defer { doc.close() }
+        let controller = try XCTUnwrap(doc.showPanel(.document, display: false))
+        XCTAssertTrue(doc.showPanel(.document, display: false) === controller, "one window per panel")
+        XCTAssertTrue(doc.windowControllers.first is DocumentWindowController, "the main window stays first")
+        XCTAssertTrue(doc.mainWindowController?.shouldCloseDocument ?? false, "closing the main window closes the panels")
+        let window = try XCTUnwrap(controller.window)
+        XCTAssertEqual(window.title, "Document — \(doc.displayName ?? "")")
+        XCTAssertTrue(window.undoManager === doc.undoManager, "Edit ▸ Undo in a panel takes back the document's edits")
+        let editor = window.fieldEditor(true, for: NSTextField())
+        XCTAssertTrue(editor is PanelFieldEditor)
+        XCTAssertNotNil(editor?.undoManager)
+        XCTAssertFalse(editor?.undoManager === doc.undoManager, "a field's typing is undone on its own")
+        let sheet = SheetWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: true)
+        XCTAssertFalse(sheet.undoManager === doc.undoManager)
+        XCTAssertFalse(doc.isDocumentEdited)
+    }
 }

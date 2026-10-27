@@ -69,6 +69,34 @@ final class DocumentPanelController: NSWindowController, NSWindowDelegate {
     override func windowTitle(forDocumentDisplayName displayName: String) -> String {
         "\(panel.title) — \(displayName)"
     }
+
+    /// The panel's text fields edit with a field editor of their own (see
+    /// `PanelFieldEditor`); the window's undo manager stays the document's,
+    /// so Edit ▸ Undo outside a field takes back an Apply.
+    private let fieldEditor: PanelFieldEditor = {
+        let editor = PanelFieldEditor()
+        editor.isFieldEditor = true
+        return editor
+    }()
+
+    func windowWillReturnFieldEditor(_ sender: NSWindow, to client: Any?) -> Any? {
+        client is NSTextField ? fieldEditor : nil
+    }
+}
+
+/// The field editor of a panel: text typed into a form is undone on its
+/// own. On the document's undo manager every edit of a field would count as
+/// a change of the document (NSDocument follows its undo manager), marking
+/// it edited with nothing to save.
+final class PanelFieldEditor: NSTextView {
+    private let ownUndo = UndoManager()
+    override var undoManager: UndoManager? { ownUndo }
+}
+
+/// A sheet's window: its undo manager is its own, never the document's.
+final class SheetWindow: NSWindow {
+    private let ownUndo = UndoManager()
+    override var undoManager: UndoManager? { ownUndo }
 }
 
 extension MedH5Document {
