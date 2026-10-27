@@ -77,7 +77,9 @@ struct AnnotationPickerSection: View {
         switch t {
         case .automatic: return "auto"
         case .new: return "new"
-        case .existing(let id): return "id:" + id
+        // One the pending edits remove is no longer listed: the tools fall
+        // back to the automatic choice.
+        case .existing(let id): return session.isRemoved(id) ? "auto" : "id:" + id
         }
     }
 

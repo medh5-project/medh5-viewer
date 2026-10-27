@@ -90,7 +90,10 @@ enum RemovalPlanner {
 
     static func annotation(_ id: String, summary: SampleSummary, clinical: ClinicalRecords?, edits: PendingEdits) -> RemovalPlan {
         var plan = RemovalPlan(group: .annotation, objectID: id)
-        if edits.importedSegmentations[id] != nil || (edits.newSegmentations[id] != nil && summary.annotation(id) == nil) {
+        // Made in the viewer and not saved yet (an import, a new segmentation,
+        // a new geometric annotation): `summary` is the saved file's.
+        if edits.importedSegmentations[id] != nil
+            || ((edits.newSegmentations[id] != nil || edits.annotations[id] != nil) && summary.annotation(id) == nil) {
             plan.isPendingAddition = true
             return plan
         }
@@ -174,6 +177,16 @@ enum RemovalPlanner {
             }
         case .annotation:
             if edits.importedSegmentations.removeValue(forKey: id) != nil { return }
+            if plan.isPendingAddition {
+                // Made in the viewer: taken back. `removedAnnotations` names
+                // only objects the file holds — a save skips what it names,
+                // and forgets the removal, while a new segmentation left in
+                // the edits would come back after it.
+                edits.newSegmentations[id] = nil
+                edits.editedSegmentations.remove(id)
+                edits.annotations[id] = nil
+                return
+            }
             edits.removedAnnotations.insert(id)
             edits.annotations[id] = nil
             for image in plan.clearsValidMaskOf {

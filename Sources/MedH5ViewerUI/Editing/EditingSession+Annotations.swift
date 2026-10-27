@@ -44,24 +44,27 @@ extension EditingSession {
         return AnnotationDraft.editableKinds.contains(a.kind)
     }
 
-    /// The geometric annotations the tools edit.
+    /// The geometric annotations the tools edit (not one the pending edits
+    /// remove).
     var editableAnnotations: [AnnotationInfo] {
-        summary.annotations.filter { AnnotationDraft.editableKinds.contains($0.kind) }
+        summary.annotations.filter { AnnotationDraft.editableKinds.contains($0.kind) && !isRemoved($0.id) }
     }
 
     /// The annotation a drawing tool adds to; `nil`: a new one, made with
     /// the next item. Automatically, an annotation the clinical history
-    /// attests is passed over (it cannot be amended).
+    /// attests is passed over (it cannot be amended), and so is one the
+    /// pending edits remove.
     func activeAnnotation(for tool: ViewerTool) -> String? {
         let kinds = Self.annotationKinds(for: tool)
         switch annotationTarget {
-        case .existing(let id) where summary.annotation(id).map({ kinds.contains($0.kind) }) == true:
+        case .existing(let id) where summary.annotation(id).map({ kinds.contains($0.kind) }) == true && !isRemoved(id):
             return id
         case .new:
             return nil
         default:
             return workspace.activeStack.layers.reversed().first {
                 $0.isVisible && kinds.contains($0.detail) && isEditableAnnotation($0.id) && attestation(of: $0.id) == nil
+                    && !isRemoved($0.id)
             }?.id
         }
     }
@@ -84,11 +87,11 @@ extension EditingSession {
 
     /// The annotation the Annotations tab lists.
     var listedAnnotation: String? {
-        if case .existing(let id) = annotationTarget, summary.annotation(id) != nil { return id }
+        if case .existing(let id) = annotationTarget, summary.annotation(id) != nil, !isRemoved(id) { return id }
         let tool = workspace.viewer.tool
         if !Self.annotationKinds(for: tool).isEmpty { return activeAnnotation(for: tool) }
         if case .new = annotationTarget { return nil }
-        return workspace.activeStack.layers.reversed().first { $0.isVisible && isEditableAnnotation($0.id) }?.id
+        return workspace.activeStack.layers.reversed().first { $0.isVisible && isEditableAnnotation($0.id) && !isRemoved($0.id) }?.id
     }
 
     /// Makes an annotation the one the tools add to (and the tab lists),
@@ -323,6 +326,9 @@ extension EditingSession {
         if let why = readOnlyReason { throw EditingFailure(why) }
         guard let document else { throw EditingFailure("There is no document to edit") }
         if !isNew, let why = attestation(of: id) { throw EditingFailure(why) }
+        if isRemoved(id) {
+            throw EditingFailure("\(id) is removed until the next save (Edit ▸ Undo brings it back): the save would write nothing into it")
+        }
         var d = draft
         d.normalizeRoles(grid: grid)
         if let e = d.validate(grid: grid).first(where: \.isError) {

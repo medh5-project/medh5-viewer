@@ -38,17 +38,25 @@ extension EditingSession {
         return Self.editableSegmentationKinds.contains(a.kind)
     }
 
-    /// Every segmentation of the sample the editor can edit.
+    /// Every segmentation of the sample the editor can edit (not one the
+    /// pending edits remove).
     var editableSegmentations: [AnnotationInfo] {
-        summary.annotations.filter { Self.editableSegmentationKinds.contains($0.kind) }
+        summary.annotations.filter { Self.editableSegmentationKinds.contains($0.kind) && !isRemoved($0.id) }
     }
 
     /// The active segmentation: the one chosen in the segment editor, else
-    /// the topmost visible segmentation of the active view.
+    /// the topmost visible segmentation of the active view (never one the
+    /// pending edits remove: the save writes nothing more into it).
     var activeSegmentation: String? {
-        if let id = activeSegmentationID, isEditableSegmentation(id) { return id }
+        if let id = activeSegmentationID, isEditableSegmentation(id), !isRemoved(id) { return id }
         return workspace.activeStack.layers.reversed()
-            .first { $0.isVisible && $0.kind == .segmentation && isEditableSegmentation($0.id) }?.id
+            .first { $0.isVisible && $0.kind == .segmentation && isEditableSegmentation($0.id) && !isRemoved($0.id) }?.id
+    }
+
+    /// Whether the pending edits remove an object of the file (Remove… in
+    /// the sidebar; Edit ▸ Undo brings it back).
+    func isRemoved(_ id: String) -> Bool {
+        pendingEdits.removedAnnotations.contains(id)
     }
 
     func segmentationResource(_ id: String) -> SegmentationResource? {
@@ -208,10 +216,19 @@ extension EditingSession {
 
     // MARK: New segmentation
 
+    /// The ids a new object cannot take: every object of the sample and of
+    /// the pending edits — imports, and objects removed until the save
+    /// (which writes nothing under an id it removes).
+    var takenIDs: Set<String> {
+        let e = pendingEdits
+        return Set(summary.annotations.map(\.id)).union(summary.images.map(\.id))
+            .union(e.newSegmentations.keys).union(e.annotations.keys).union(e.removedAnnotations)
+            .union(e.importedSegmentations.keys).union(e.newImages.keys)
+    }
+
     /// An id no object of the sample (or of the pending edits) has.
     func uniqueID(_ base: String) -> String {
-        let taken = Set(summary.annotations.map(\.id)).union(summary.images.map(\.id))
-            .union(pendingEdits.newSegmentations.keys).union(pendingEdits.annotations.keys)
+        let taken = takenIDs
         var id = base, n = 2
         while taken.contains(id) {
             id = "\(base)_\(n)"
@@ -227,10 +244,8 @@ extension EditingSession {
         if id.unicodeScalars.contains(where: { !allowed.contains($0) }) || id.hasPrefix(".") {
             return "Use letters, digits, “_”, “-” and “.” only"
         }
-        if summary.annotation(id) != nil || summary.image(id) != nil || pendingEdits.annotations[id] != nil
-            || pendingEdits.newSegmentations[id] != nil {
-            return "“\(id)” is taken"
-        }
+        if isRemoved(id) { return "“\(id)” is removed until the next save: choose another id" }
+        if takenIDs.contains(id) { return "“\(id)” is taken" }
         return nil
     }
 
