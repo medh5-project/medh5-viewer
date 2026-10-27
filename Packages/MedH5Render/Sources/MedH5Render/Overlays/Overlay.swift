@@ -102,9 +102,12 @@ public struct OrientedBox: Sendable, Equatable {
     /// The eight corners (bit 0: ±axis 0, bit 1: ±axis 1, bit 2: ±axis 2).
     public var corners: [SIMD3<Double>] {
         (0..<8).map { i in
-            center + halfAxes.columns.0 * ((i & 1) != 0 ? 1 : -1)
-                + halfAxes.columns.1 * ((i & 2) != 0 ? 1 : -1)
-                + halfAxes.columns.2 * ((i & 4) != 0 ? 1 : -1)
+            // Typed signs: with the literals inline, Swift 6.3 gives up on
+            // type-checking the sum.
+            let s0: Double = (i & 1) != 0 ? 1 : -1
+            let s1: Double = (i & 2) != 0 ? 1 : -1
+            let s2: Double = (i & 4) != 0 ? 1 : -1
+            return center + halfAxes.columns.0 * s0 + halfAxes.columns.1 * s1 + halfAxes.columns.2 * s2
         }
     }
 

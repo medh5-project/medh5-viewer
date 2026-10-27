@@ -71,6 +71,14 @@ enum EditScript {
         send(w, .mouseUp, p, cam, clicks: clicks)
     }
 
+    /// The point `x` mm right of and `y` mm below `c` in the camera's plane.
+    /// Typed offsets keep the scripts quick to type-check: a list of sums like
+    /// `c - r * 60 + d * 40` can be more than Swift 6.3 will solve.
+    private static func offsetPoints(from c: SIMD3<Double>, in cam: SliceCamera) -> (Double, Double) -> SIMD3<Double> {
+        let r = cam.axes.right, d = cam.axes.down
+        return { x, y in c + r * x + d * y }
+    }
+
     // MARK: Scripts
 
     /// A new segmentation; a brush stroke around the lesion; Fill Holes
@@ -93,15 +101,15 @@ enum EditScript {
         s.brush.isSphere = false
         s.select(.brush)
         let cam = try camera(w)
-        let r = cam.axes.right, d = cam.axes.down
+        let at = offsetPoints(from: c, in: cam)
         let ring = (0...24).map { i -> SIMD3<Double> in
             let t = Double(i) / 24 * 2 * .pi
-            return c + r * (16 * cos(t)) + d * (16 * sin(t))
+            return at(16 * cos(t), 16 * sin(t))
         }
         drag(w, ring, cam)
         s.operation.holesIn2D = true
         await s.runOperation(.fillHoles)?.value
-        s.viewState(.slice(.axial)).pointer = c + r * 34 + d * 8
+        s.viewState(.slice(.axial)).pointer = at(34, 8)
     }
 
     /// A box around the lesion, a point, a polyline and a contour (each a
@@ -113,31 +121,31 @@ enum EditScript {
         }
         if w.summary.labelSet?.labelClass(id: 9) != nil { s.annotationClassID = 9 }
         let cam = try camera(w)
-        let r = cam.axes.right, d = cam.axes.down
+        let at = offsetPoints(from: c, in: cam)
 
         s.annotationTarget = .new
         s.select(.box)
-        drag(w, [c - r * 26 - d * 22, c, c + r * 26 + d * 22], cam)
+        drag(w, [at(-26, -22), c, at(26, 22)], cam)
         let boxes = s.listedAnnotation
 
         s.annotationTarget = .new
         s.select(.point)
-        click(w, c + r * 48 - d * 30, cam)
+        click(w, at(48, -30), cam)
 
         if w.summary.labelSet?.labelClass(id: 2) != nil { s.annotationClassID = 2 }
         s.annotationTarget = .new
         s.select(.contour)
-        for p in [c - r * 60 + d * 40, c - r * 20 + d * 70, c + r * 30 + d * 62, c + r * 10 + d * 34] { click(w, p, cam) }
-        click(w, c - r * 60 + d * 40, cam)
+        for p in [at(-60, 40), at(-20, 70), at(30, 62), at(10, 34)] { click(w, p, cam) }
+        click(w, at(-60, 40), cam)
 
         if w.summary.labelSet?.labelClass(id: 7) != nil { s.annotationClassID = 7 }
         s.annotationTarget = .new
         s.select(.polyline)
-        for p in [c - r * 70 - d * 50, c - r * 35 - d * 62, c + r * 5 - d * 58] { click(w, p, cam) }
+        for p in [at(-70, -50), at(-35, -62), at(5, -58)] { click(w, p, cam) }
         send(w, .keyDown, c, cam, key: ToolEvent.returnKey)
         // A second polyline, in progress.
-        for p in [c + r * 40 + d * 70, c + r * 70 + d * 55] { click(w, p, cam) }
-        s.viewState(.slice(.axial)).pointer = c + r * 85 + d * 80
+        for p in [at(40, 70), at(70, 55)] { click(w, p, cam) }
+        s.viewState(.slice(.axial)).pointer = at(85, 80)
 
         // The tab lists the boxes, with the box selected.
         if let boxes {
@@ -151,19 +159,19 @@ enum EditScript {
     static func measure(_ w: Workspace, _ c: SIMD3<Double>) throws {
         let s = w.editing
         let cam = try camera(w)
-        let r = cam.axes.right, d = cam.axes.down
+        let at = offsetPoints(from: c, in: cam)
         s.select(.ruler)
-        drag(w, [c + r * 30 - d * 40, c + r * 50 - d * 35, c + r * 75 - d * 30], cam)
+        drag(w, [at(30, -40), at(50, -35), at(75, -30)], cam)
         s.select(.angle)
-        for p in [c - r * 80 + d * 10, c - r * 55 + d * 40, c - r * 25 + d * 15] { click(w, p, cam) }
+        for p in [at(-80, 10), at(-55, 40), at(-25, 15)] { click(w, p, cam) }
         s.select(.roi)
         s.roiShape = .ellipse
-        drag(w, [c - r * 18 - d * 18, c + r * 18 + d * 18], cam)
+        drag(w, [at(-18, -18), at(18, 18)], cam)
         s.roiShape = .rectangle
-        drag(w, [c + r * 45 + d * 25, c + r * 80 + d * 55], cam)
+        drag(w, [at(45, 25), at(80, 55)], cam)
         // An ROI being dragged.
         s.roiShape = .ellipse
-        send(w, .mouseDown, c - r * 70 - d * 60, cam)
-        send(w, .mouseDragged, c - r * 40 - d * 35, cam)
+        send(w, .mouseDown, at(-70, -60), cam)
+        send(w, .mouseDragged, at(-40, -35), cam)
     }
 }

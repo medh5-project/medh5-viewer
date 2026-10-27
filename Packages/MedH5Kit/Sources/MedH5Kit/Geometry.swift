@@ -327,8 +327,8 @@ extension GeometricAnnotation {
                 : .polylines(Polylines(header: header, polylines: lines))
         case "mesh":
             let faces = try bundle.array("faces").ints
-            let triangles = stride(from: 0, to: faces.count - 2, by: 3).map {
-                SIMD3<Int32>(Int32(faces[$0]), Int32(faces[$0 + 1]), Int32(faces[$0 + 2]))
+            let triangles = stride(from: 0, to: faces.count - 2, by: 3).map { (i: Int) in
+                SIMD3<Int32>(Int32(faces[i]), Int32(faces[i + 1]), Int32(faces[i + 2]))
             }
             let offsets = optional("mesh_offsets")?.ints ?? [0, triangles.count]
             let meshClasses = optional("mesh_class_ids")?.ints
