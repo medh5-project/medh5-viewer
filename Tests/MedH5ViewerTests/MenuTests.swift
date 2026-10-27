@@ -2,8 +2,8 @@ import XCTest
 import AppKit
 @testable import MedH5ViewerUI
 
-/// The main menu: every menu of the design, the viewing tools enabled, the
-/// editing phase's items present and disabled.
+/// The main menu: every menu of the design, each command with its action
+/// and key.
 @MainActor
 final class MenuTests: XCTestCase {
     func testTheMainMenuHasEveryMenuOfTheDesign() throws {
@@ -36,12 +36,6 @@ final class MenuTests: XCTestCase {
         }
         XCTAssertEqual(item("Tools", "Navigate")?.keyEquivalent, "v")
         XCTAssertEqual(item("Tools", "Box")?.keyEquivalentModifierMask, [.shift])
-        // Phase B items: present, no action.
-        for path in [["File", "Import", "NIfTI Image…"], ["File", "Export", "NIfTI…"],
-                     ["Tools", "Validate…"], ["Tools", "Recompress…"]] {
-            let i = try XCTUnwrap(find(path), path.joined(separator: " ▸ "))
-            XCTAssertNil(i.action, path.joined(separator: " ▸ "))
-        }
         // The editing tools' items (phase B1).
         XCTAssertEqual(item("Segmentation", "New Segmentation…")?.action, #selector(DocumentWindowController.newSegmentation(_:)))
         XCTAssertEqual(item("Segmentation", "Add Class…")?.action, #selector(DocumentWindowController.addSegmentClass(_:)))
@@ -63,6 +57,31 @@ final class MenuTests: XCTestCase {
             XCTAssertEqual(i.keyEquivalent, key, tool.title)
             XCTAssertEqual(i.keyEquivalentModifierMask, shift ? [.shift] : [], tool.title)
         }
+        // The panels and file commands: the document's (it is in the
+        // responder chain of its main window and of its panels).
+        let documentCommands: [([String], Selector)] = [
+            (["File", "Import", "NIfTI Image…"], #selector(MedH5Document.importNIfTIImage(_:))),
+            (["File", "Import", "NIfTI Segmentation…"], #selector(MedH5Document.importNIfTISegmentation(_:))),
+            (["File", "Export", "NIfTI…"], #selector(MedH5Document.exportNIfTI(_:))),
+            (["Tools", "Validate…"], #selector(MedH5Document.showValidation(_:))),
+            (["Tools", "Verify Integrity"], #selector(MedH5Document.verifyIntegrity(_:))),
+            (["Tools", "Build Sampling Index…"], #selector(MedH5Document.buildSamplingIndex(_:))),
+            (["Tools", "Recompress…"], #selector(MedH5Document.recompressSample(_:))),
+            (["Window", "Document"], #selector(MedH5Document.showDocumentEditor(_:))),
+            (["Window", "Label Set"], #selector(MedH5Document.showLabelSetEditor(_:))),
+            (["Window", "Clinical History"], #selector(MedH5Document.showClinicalHistory(_:))),
+        ]
+        for (path, action) in documentCommands {
+            XCTAssertEqual(find(path)?.action, action, path.joined(separator: " ▸ "))
+        }
+        XCTAssertEqual(item("Tools", "Validate…")?.keyEquivalent, "v")
+        XCTAssertEqual(item("Tools", "Validate…")?.keyEquivalentModifierMask, [.command, .shift])
+        XCTAssertEqual(item("Window", "Document")?.keyEquivalent, "d")
+        XCTAssertEqual(item("Window", "Document")?.keyEquivalentModifierMask, [.command, .option])
+        XCTAssertEqual(item("File", "New Collection from Samples…")?.action, #selector(AppDelegate.newCollectionFromSamples(_:)))
+        XCTAssertEqual(item("Help", "Keyboard Shortcuts")?.action, #selector(AppDelegate.showKeyboardShortcuts(_:)))
+        XCTAssertEqual(item("Help", "Acknowledgements")?.action, #selector(AppDelegate.showAcknowledgements(_:)))
+        XCTAssertEqual(item("Help", "medh5 Viewer Help")?.action, #selector(AppDelegate.showHelp(_:)))
         XCTAssertNotNil(item("File", "Export", "Screenshot…")?.action)
         XCTAssertNotNil(item("Help", "Open Demo Sample")?.action)
         XCTAssertNotNil(item("File", "Open Recent", "Clear Menu")?.action)

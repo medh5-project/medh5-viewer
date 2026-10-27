@@ -20,3 +20,6 @@ Packages/MedH5Kit/Frameworks/
 # Test scratch
 *.medh5.tmp*
 Tests/Fixtures/generated/
+
+# Agent worktrees (Claude Code)
+.claude/worktrees/

@@ -375,7 +375,7 @@ struct SegmentToolSection: View {
             Text("Fills the connected voxels holding what the clicked voxel holds in the class’s layer.")
                 .font(.system(size: 10.5)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         case .tolerance:
-            NumberField(title: "Tolerance", value: $session.fill.tolerance, units: units)
+            InspectorNumberField(title: "Tolerance", value: $session.fill.tolerance, units: units)
         case .range:
             RangeFields(low: $session.fill.rangeLow, high: $session.fill.rangeHigh, units: units) {
                 if let r = session.windowRange() {
@@ -427,7 +427,7 @@ struct ClassPicker: View {
 }
 
 /// A number with its units.
-struct NumberField: View {
+struct InspectorNumberField: View {
     let title: String
     @Binding var value: Double
     var units = ""
@@ -541,7 +541,7 @@ struct SegmentOperationsSection: View {
             if session.operation.growInRange {
                 RangeFields(low: $session.operation.low, high: $session.operation.high, units: units) { fromWindow() }
             } else {
-                NumberField(title: "Tolerance", value: $session.operation.growTolerance, units: units)
+                InspectorNumberField(title: "Tolerance", value: $session.operation.growTolerance, units: units)
             }
             LabeledRow("Extent") {
                 Picker("Extent", selection: $session.operation.growIn3D) {
@@ -561,14 +561,14 @@ struct SegmentOperationsSection: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
             }
-            NumberField(title: "Radius", value: $session.operation.morphologyRadius, units: "mm")
+            InspectorNumberField(title: "Radius", value: $session.operation.morphologyRadius, units: "mm")
             Toggle("In each slice of the active view (2-D)", isOn: $session.operation.morphologyIn2D)
         case .fillHoles:
             Toggle("In each slice of the active view (2-D)", isOn: $session.operation.holesIn2D)
         case .keepLargest:
             EmptyView()
         case .removeIslands:
-            NumberField(title: "Smaller than", value: $session.operation.islandMinimumVolume, units: "\(model.geometry.units)³")
+            InspectorNumberField(title: "Smaller than", value: $session.operation.islandMinimumVolume, units: "\(model.geometry.units)³")
             Text("≈ \(Format.integer(Int((session.operation.islandMinimumVolume / max(1e-9, model.geometry.paddedVoxelVolume)).rounded(.up)))) voxels")
                 .font(.system(size: 10.5)).foregroundStyle(.secondary)
         case .interpolate:

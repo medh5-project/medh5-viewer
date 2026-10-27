@@ -194,11 +194,28 @@ remove (edits), reveal attributes.
 - **Welcome window** when no document is open: Open…, Open Recent, Open Demo
   Sample, New Sample from NIfTI…, links to the user guide and the medh5
   documentation.
+- **Build Sampling Index…** and **Recompress…** (codec profile): sheets that
+  write a new file, or replace the document's file after confirmation (no
+  unsaved changes) and have the document read it.
+- **New Collection from Samples…** packs `.medh5` files into a `.medh5c`
+  and opens it.
+- **Help** renders the bundled user guide (`Contents/Resources/Help`) with
+  its contents, falling back to the online guide; **Keyboard Shortcuts**
+  lists every key, built from the menus, the tools table above and the
+  views' navigation; **Acknowledgements** shows the bundled third-party
+  notices (also linked from the About panel).
+
+Validate, Verify Integrity, Document, Label Set and Clinical History are
+windows of their document: they close with it and share its undo manager
+(their text fields keep text undo to themselves). An edit made in them is a
+pending edit like any other — the sidebar lists the unsaved changes at its
+top — and the editors have the engine check a document or label set before
+accepting it.
 
 ## Menus
 
-- **File**: New Sample from NIfTI…, Open… ⌘O, Open Recent, Open Demo
-  Sample, Close ⌘W, Save ⌘S, Save As… ⇧⌘S, Revert to Saved, Import ▸
+- **File**: New Sample from NIfTI…, New Collection from Samples…, Open… ⌘O,
+  Open Recent, Open Demo Sample, Close ⌘W, Save ⌘S, Save As… ⇧⌘S, Revert to Saved, Import ▸
   (NIfTI Image…, NIfTI Segmentation…), Export ▸ (NIfTI…, Screenshot…,
   Measurements…), Page Setup is omitted.
 - **Edit**: Undo/Redo, Cut/Copy/Paste (measurements, annotation items),
@@ -212,8 +229,9 @@ remove (edits), reveal attributes.
   Outline Only, Hide All.
 - **Tools**: the interaction tools, Validate…, Verify Integrity, Build
   Sampling Index, Recompress…
-- **Window**, **Help** (medh5 Viewer Help, Keyboard Shortcuts, medh5
-  Documentation, Open Demo Sample, Report an Issue).
+- **Window** (Document ⌥⌘D, Label Set, Clinical History), **Help** (medh5
+  Viewer Help, Keyboard Shortcuts, medh5 Documentation, Open Demo Sample,
+  Acknowledgements, Report an Issue).
 
 ## Accessibility and polish
 

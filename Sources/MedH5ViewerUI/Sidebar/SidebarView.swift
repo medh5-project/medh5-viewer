@@ -2,11 +2,13 @@ import SwiftUI
 import AppKit
 import MedH5Kit
 
-/// The sample's contents as an outline: header, timepoints → grids → images
-/// and annotations, annotations across timepoints, transforms, the label
-/// set, curation records. Selecting a row shows it in the inspector's Info
-/// tab; double-clicking an image makes it the base layer; the eye adds or
-/// removes an overlay.
+/// The sample's contents as an outline: header, unsaved changes,
+/// timepoints → grids → images and annotations, annotations across
+/// timepoints, transforms, the label set, curation records. Selecting a row
+/// shows it in the inspector's Info tab; double-clicking an image makes it
+/// the base layer, the label set opens its editor, the clinical history its
+/// window, a curation record the document editor; the eye adds or removes
+/// an overlay.
 struct SidebarView: View {
     @Bindable var workspace: Workspace
 
@@ -18,6 +20,7 @@ struct SidebarView: View {
             SidebarHeader(workspace: workspace)
                 .listRowSeparator(.hidden)
                 .selectionDisabled()
+            PendingChangesSection(workspace: workspace)
             ForEach(workspace.sections) { section in
                 Section(section.title) {
                     ForEach(section.nodes) { node in
@@ -36,12 +39,18 @@ struct SidebarView: View {
             switch node.kind {
             case .image(let image): workspace.showAsBase(image)
             case .annotation(let a) where node.isDisplayable: workspace.toggleOverlay(a)
+            case .labelSet, .labelClass: workspace.document?.showPanel(.labelSet)
+            case .clinical: workspace.document?.showPanel(.clinical)
+            case .quality: workspace.document?.showDocumentEditor(page: .quality)
+            case .deidentification: workspace.document?.showDocumentEditor(page: .deidentification)
+            case .provenance: workspace.document?.showDocumentEditor(page: .outline)
             default:
                 if node.children != nil {
                     if workspace.expanded.contains(node.id) { workspace.expanded.remove(node.id) } else { workspace.expanded.insert(node.id) }
                 }
             }
         }
+        .onAppear { workspace.auxiliary.observe(workspace.document?.undoManager) }
     }
 }
 
@@ -75,13 +84,20 @@ struct SidebarRow: View {
     let workspace: Workspace
 
     var body: some View {
+        let removed = isRemoved
         HStack(spacing: 7) {
             icon
             VStack(alignment: .leading, spacing: 1) {
                 Text(node.title)
+                    .strikethrough(removed)
+                    .foregroundStyle(removed ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                if let subtitle = node.subtitle {
+                if removed {
+                    Text("removed when you save")
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.orange)
+                } else if let subtitle = node.subtitle {
                     Text(subtitle)
                         .font(.system(size: 10.5))
                         .foregroundStyle(node.isWarning ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.secondary))
@@ -104,6 +120,17 @@ struct SidebarRow: View {
         }
         .padding(.vertical, 1)
         .accessibilityElement(children: .combine)
+    }
+
+    /// The object is removed in the pending edits.
+    private var isRemoved: Bool {
+        let edits = workspace.pendingEdits
+        switch node.kind {
+        case .image(let id): return edits.removedImages.contains(id)
+        case .annotation(let id): return edits.removedAnnotations.contains(id)
+        case .transform(let id): return edits.removedTransforms.contains(id)
+        default: return false
+        }
     }
 
     @ViewBuilder
@@ -150,27 +177,53 @@ struct SidebarRow: View {
     }
 }
 
-/// Show, overlay, export (later), remove (later), reveal attributes.
+/// Show, overlay, export as NIfTI, remove (a pending edit, undoable;
+/// refused when the format forbids it, confirmed when it reaches further),
+/// open an editor, reveal attributes.
 struct SidebarContextMenu: View {
     let node: SidebarNode
     let workspace: Workspace
 
     var body: some View {
+        let edits = workspace.pendingEdits
+        let editable = !workspace.isReadOnly && workspace.amendableURL != nil
         switch node.kind {
         case .image(let id):
             Button("Show as Base Image") { workspace.showAsBase(id) }
             Button(workspace.activeStack.contains(id) ? "Remove Overlay" : "Add as Overlay") { workspace.toggleOverlay(id) }
                 .disabled(workspace.activeStack.base?.id == id)
             Divider()
-            Button("Export as NIfTI…") {}.disabled(true)
-            Button("Remove Image…") {}.disabled(true)
+            Button("Export as NIfTI…") { workspace.document?.exportNIfTI(objectID: id) }
+                .disabled(!exportable(id))
+            Button("Remove Image…") { workspace.document?.requestRemoval(.image, id) }
+                .disabled(!editable || edits.removedImages.contains(id))
         case .annotation(let id):
             if node.isDisplayable {
                 Button(workspace.activeStack.contains(id) ? "Hide Overlay" : "Show as Overlay") { workspace.toggleOverlay(id) }
             }
             Divider()
-            Button("Export as NIfTI…") {}.disabled(true)
-            Button("Remove Annotation…") {}.disabled(true)
+            Button("Export as NIfTI…") { workspace.document?.exportNIfTI(objectID: id) }
+                .disabled(!exportable(id))
+            Button("Remove Annotation…") { workspace.document?.requestRemoval(.annotation, id) }
+                .disabled(!editable || edits.removedAnnotations.contains(id))
+        case .transform(let id):
+            Button("Remove Transform…") { workspace.document?.requestRemoval(.transform, id) }
+                .disabled(!editable || edits.removedTransforms.contains(id))
+        case .labelSet, .labelClass:
+            Button("Open Label Set Editor") { workspace.document?.showPanel(.labelSet) }
+        case .clinical:
+            Button("Open Clinical History") { workspace.document?.showPanel(.clinical) }
+        case .quality:
+            Button("Edit Quality Records…") { workspace.document?.showDocumentEditor(page: .quality) }
+        case .deidentification:
+            Button("Edit De-identification…") { workspace.document?.showDocumentEditor(page: .deidentification) }
+        case .timepoint:
+            Button("Edit Timepoints…") { workspace.document?.showDocumentEditor(page: .timepoints) }
+        case .provenance:
+            Button("Show in the Document Outline") { workspace.document?.showDocumentEditor(page: .outline) }
+        case .index:
+            Button("Build Sampling Index…") { workspace.document?.beginStorageTool(.index) }
+                .disabled(!editable)
         default:
             EmptyView()
         }
@@ -181,6 +234,138 @@ struct SidebarContextMenu: View {
         Button("Copy Name") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(node.objectID ?? node.title, forType: .string)
+        }
+    }
+
+    private func exportable(_ id: String) -> Bool {
+        if case .success = NIfTIExport.object(id, in: workspace.summary, edits: workspace.pendingEdits) { return true }
+        return false
+    }
+}
+
+/// What the pending edits hold, as sidebar rows.
+enum PendingChangeList {
+    struct Item: Identifiable, Hashable {
+        enum Kind: Hashable {
+            case addedImage(String), addedGrid(String), addedSegmentation(String)
+            case removedImage(String), removedAnnotation(String), removedTransform(String)
+            case editedSegmentation(String), newSegmentation(String), annotation(String), imageAttributes(String)
+            case document, labelSet
+        }
+
+        var kind: Kind
+        var title: String
+        var subtitle: String
+        var symbol: String
+        var id: String { "pending:\(kind)" }
+
+        var isAddition: Bool {
+            switch kind {
+            case .addedImage, .addedSegmentation: return true
+            default: return false
+            }
+        }
+    }
+
+    static func items(_ e: PendingEdits, summary: SampleSummary) -> [Item] {
+        var out: [Item] = []
+        if e.document != nil {
+            out.append(Item(kind: .document, title: "Document", subtitle: "edited", symbol: "doc.text"))
+        }
+        switch e.labelSet {
+        case .set?: out.append(Item(kind: .labelSet, title: "Label set", subtitle: "edited", symbol: Symbols.labelSet))
+        case .remove?: out.append(Item(kind: .labelSet, title: "Label set", subtitle: "removed", symbol: Symbols.labelSet))
+        case nil: break
+        }
+        for (id, g) in e.newGrids.sorted(by: { $0.key < $1.key }) {
+            out.append(Item(kind: .addedGrid(id), title: id, subtitle: "new grid · \(Format.shape(g.spatialShape))\(g.timepoint.map { " · \($0)" } ?? "")",
+                            symbol: Symbols.grid))
+        }
+        for (id, image) in e.newImages.sorted(by: { $0.key < $1.key }) {
+            out.append(Item(kind: .addedImage(id), title: id,
+                            subtitle: "new \(image.options.modality) image on \(image.grid)\(image.source.map { " · from \($0)" } ?? "")",
+                            symbol: "plus.square.on.square"))
+        }
+        for (id, seg) in e.importedSegmentations.sorted(by: { $0.key < $1.key }) {
+            out.append(Item(kind: .addedSegmentation(id), title: id,
+                            subtitle: "new segmentation on \(seg.grid) · \(seg.options.classIDs?.count ?? 0) classes",
+                            symbol: "plus.square.on.square"))
+        }
+        for id in e.newSegmentations.keys.sorted() where !e.removedAnnotations.contains(id) {
+            out.append(Item(kind: .newSegmentation(id), title: id, subtitle: "new segmentation", symbol: Symbols.annotation(kind: "layers")))
+        }
+        for id in e.editedSegmentations.subtracting(e.newSegmentations.keys).sorted() where !e.removedAnnotations.contains(id) {
+            out.append(Item(kind: .editedSegmentation(id), title: id, subtitle: "voxels edited", symbol: Symbols.annotation(kind: "layers")))
+        }
+        for id in e.annotations.keys.sorted() where !e.removedAnnotations.contains(id) {
+            out.append(Item(kind: .annotation(id), title: id, subtitle: summary.annotation(id) == nil ? "new annotation" : "edited",
+                            symbol: "square.dashed"))
+        }
+        for id in e.imageAttributes.keys.sorted() where !e.removedImages.contains(id) {
+            out.append(Item(kind: .imageAttributes(id), title: id, subtitle: "attributes edited", symbol: "slider.horizontal.3"))
+        }
+        for id in e.removedImages.sorted() {
+            out.append(Item(kind: .removedImage(id), title: id, subtitle: "image removed", symbol: "minus.square"))
+        }
+        for id in e.removedAnnotations.sorted() where summary.annotation(id) != nil {
+            out.append(Item(kind: .removedAnnotation(id), title: id, subtitle: "annotation removed", symbol: "minus.square"))
+        }
+        for id in e.removedTransforms.sorted() {
+            out.append(Item(kind: .removedTransform(id), title: id, subtitle: "transform removed", symbol: "minus.square"))
+        }
+        return out
+    }
+}
+
+/// The document's unsaved changes, at the top of the sidebar: what the next
+/// save writes. Added objects are shown once saved; until then a context
+/// menu takes an import back.
+struct PendingChangesSection: View {
+    let workspace: Workspace
+
+    var body: some View {
+        let items = PendingChangeList.items(workspace.pendingEdits, summary: workspace.summary)
+        if !items.isEmpty {
+            Section("Unsaved Changes") {
+                ForEach(items) { item in
+                    HStack(spacing: 7) {
+                        Image(systemName: item.symbol)
+                            .foregroundStyle(.orange)
+                            .frame(width: 18)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(item.title).lineLimit(1).truncationMode(.middle)
+                            Text(item.subtitle)
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(.vertical, 1)
+                    .selectionDisabled()
+                    .help(item.isAddition ? "Written to the file when you save; shown in the views once saved" : "Written to the file when you save")
+                    .contextMenu { menu(for: item) }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func menu(for item: PendingChangeList.Item) -> some View {
+        switch item.kind {
+        case .addedImage(let id):
+            Button("Remove the Imported Image") { workspace.document?.requestRemoval(.image, id) }
+        case .addedSegmentation(let id):
+            Button("Remove the Imported Segmentation") { workspace.document?.requestRemoval(.annotation, id) }
+        case .document:
+            Button("Open the Document Editor") { workspace.document?.showPanel(.document) }
+        case .labelSet:
+            Button("Open the Label Set Editor") { workspace.document?.showPanel(.labelSet) }
+        default:
+            EmptyView()
+        }
+        if let undo = workspace.document?.undoManager, undo.canUndo {
+            Button("Undo \(undo.undoActionName)") { undo.undo() }
         }
     }
 }

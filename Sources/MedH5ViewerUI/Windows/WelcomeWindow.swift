@@ -73,7 +73,9 @@ struct WelcomeView: View {
                 }
                 Spacer(minLength: 16)
                 HStack(spacing: 16) {
-                    Link("User Guide", destination: AppInfo.userGuideURL)
+                    Button("User Guide") { HelpWindow.show() }
+                        .buttonStyle(.link)
+                        .help("The user guide, in the app")
                     Link("medh5 Documentation", destination: AppInfo.documentationURL)
                 }
                 .font(.callout)

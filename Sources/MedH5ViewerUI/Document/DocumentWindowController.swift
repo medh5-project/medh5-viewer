@@ -132,23 +132,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         workspace.editing.select(tool)
     }
 
-    @objc func verifyIntegrity(_ sender: Any?) {
-        let file = workspace.file
-        Task { @MainActor [weak self] in
-            do {
-                let report = try await blocking { try file.verify() }
-                let failed = report.objects.filter { !$0.ok }
-                self?.workspace.alert = AppAlert(
-                    title: report.ok ? "Integrity verified" : "Integrity check failed",
-                    message: report.ok
-                        ? "Every object digest (\(report.objects.count)) and the content id match the stored bytes."
-                        : "Objects that do not verify: \(failed.map(\.path).joined(separator: ", ")).\(report.contentID.ok == false ? " The content id does not match." : "")")
-            } catch {
-                self?.workspace.alert = AppAlert(title: "Could not verify", message: VolumeStore.describe(error))
-            }
-        }
-    }
-
     // MARK: File menu
 
     @objc func exportScreenshot(_ sender: Any?) {

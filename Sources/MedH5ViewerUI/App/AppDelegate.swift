@@ -125,32 +125,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showPreferences(_ sender: Any?) { PreferencesWindowController.shared.show() }
     @objc func showWelcome(_ sender: Any?) { WelcomeWindowController.shared.show() }
 
+    @objc func newCollectionFromSamples(_ sender: Any?) { CollectionMaker.run() }
+
     @objc func showAbout(_ sender: Any?) {
+        let small = NSFont.systemFont(ofSize: 11)
+        let credits = NSMutableAttributedString(
+            string: "A native viewer and editor for medh5 files.\nmedh5 engine \(MedH5.engineVersion) · format \(MedH5.formatVersion) · bridge \(MedH5.bridgeVersion)\n\nBuilt on open-source software: ",
+            attributes: [.font: small, .foregroundColor: NSColor.secondaryLabelColor])
+        credits.append(NSAttributedString(string: "Acknowledgements", attributes: [.font: small, .link: AboutCredits.acknowledgementsLink]))
+        credits.append(NSAttributedString(string: ".", attributes: [.font: small, .foregroundColor: NSColor.secondaryLabelColor]))
+        let centered = NSMutableParagraphStyle()
+        centered.alignment = .center
+        credits.addAttribute(.paragraphStyle, value: centered, range: NSRange(location: 0, length: credits.length))
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationName: "medh5 Viewer",
             .applicationVersion: AppInfo.version,
-            .credits: NSAttributedString(
-                string: "A native viewer and editor for medh5 files.\nmedh5 engine \(MedH5.engineVersion) · format \(MedH5.formatVersion) · bridge \(MedH5.bridgeVersion)",
-                attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]),
+            .credits: credits,
         ])
+        AboutCredits.install()
     }
 
-    @objc func showHelp(_ sender: Any?) { NSWorkspace.shared.open(AppInfo.userGuideURL) }
+    @objc func showHelp(_ sender: Any?) { HelpWindow.show() }
     @objc func showDocumentation(_ sender: Any?) { NSWorkspace.shared.open(AppInfo.documentationURL) }
     @objc func reportIssue(_ sender: Any?) { NSWorkspace.shared.open(AppInfo.issuesURL) }
+    @objc func showKeyboardShortcuts(_ sender: Any?) { ShortcutsWindow.show() }
+    @objc func showAcknowledgements(_ sender: Any?) { AcknowledgementsWindow.show() }
+}
 
-    @objc func showKeyboardShortcuts(_ sender: Any?) {
-        let alert = NSAlert()
-        alert.messageText = "Keyboard Shortcuts"
-        alert.informativeText = """
-        Layouts: 1 single · 2 1×3 · 3 2×2 · 4 3-D · 5 compare
-        Tools: V navigate · W window/level · H pan · Z zoom
-        Slices: scroll or ↑ ↓ one slice · Page Up/Down ten · Home/End first/last
-        Navigate tool: click sets the crosshair · ⌥-drag pans · ⌃-drag zooms · ⇧-drag windows
-        3-D: drag orbits · ⌥-drag pans · scroll zooms · double-click resets
-        View: ⌘0 reset · ⌘= zoom in · ⌘- zoom out · ⌃⌘S sidebar · ⌥⌘I inspector
-        Image: ⌥⌘W auto window · ⌘] / ⌘[ next/previous timepoint
-        """
-        alert.runModal()
+/// The About panel's credits link to the Acknowledgements window: the
+/// panel's text view gets a delegate that opens the window for that link
+/// (other links open as usual).
+@MainActor
+enum AboutCredits {
+    static let acknowledgementsLink = URL(string: "x-medh5-viewer:acknowledgements")!
+    private static let handler = LinkHandler()
+
+    static func install() {
+        for window in NSApp.windows where !(window is DocumentWindow) {
+            guard let view = textView(in: window.contentView), view.string.contains("Acknowledgements") else { continue }
+            view.delegate = handler
+        }
+    }
+
+    private static func textView(in view: NSView?) -> NSTextView? {
+        guard let view else { return nil }
+        if let t = view as? NSTextView { return t }
+        for sub in view.subviews { if let t = textView(in: sub) { return t } }
+        return nil
+    }
+
+    final class LinkHandler: NSObject, NSTextViewDelegate {
+        func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
+            let url = (link as? URL) ?? (link as? String).flatMap(URL.init(string:))
+            guard url == AboutCredits.acknowledgementsLink else { return false }
+            MainActor.assumeIsolated { AcknowledgementsWindow.show() }
+            return true
+        }
     }
 }

@@ -144,6 +144,7 @@ public final class MedH5Document: NSDocument {
            action == #selector(save(_:)) || action == #selector(saveAs(_:)) || action == #selector(revertToSaved(_:)) {
             return false
         }
+        if let answer = MainActor.assumeIsolated({ validateAuxiliaryItem(item) }) { return answer }
         return super.validateUserInterfaceItem(item)
     }
 
@@ -264,6 +265,7 @@ public final class MedH5Document: NSDocument {
         remaining.removedImages.subtract(saved.removedImages)
         remaining.removedTransforms.subtract(saved.removedTransforms)
         for (id, attrs) in saved.imageAttributes where remaining.imageAttributes[id] == attrs { remaining.imageAttributes[id] = nil }
+        remaining.forgetSavedAdditions(saved)
         edits = remaining
         undoManager?.removeAllActions()
         if !edits.isEmpty { updateChangeCount(.changeDone) }

@@ -8,7 +8,7 @@
 # 2. the Swift app (`swift build`), in BUILD_ROOT (scripts/common.sh: build/,
 #    or a cache folder when the repository is in iCloud Drive);
 # 3. the bundle: executable, Info.plist (version from VERSION, build number
-#    from the commit count), icons;
+#    from the commit count), icons, licences, the user guide (Help);
 # 4. code signing: ad hoc by default, or with CODESIGN_IDENTITY (a
 #    "Developer ID Application: …" identity) and the hardened runtime.
 set -euo pipefail
@@ -62,7 +62,12 @@ plutil -lint "$APP/Contents/Info.plist" >/dev/null
 cp "$ROOT/Resources/AppIcon.icns" "$ROOT/Resources/DocumentIcon.icns" "$APP/Contents/Resources/"
 cp "$ROOT/LICENSE" "$APP/Contents/Resources/LICENSE.txt"
 cp "$ROOT/THIRD_PARTY_NOTICES" "$APP/Contents/Resources/THIRD_PARTY_NOTICES.txt"
-if [[ -d "$BUILD_ROOT/help" ]]; then cp -R "$BUILD_ROOT/help" "$APP/Contents/Resources/Help"; fi
+# The user guide the Help window renders, with its images.
+if [[ -f "$ROOT/docs/USER_GUIDE.md" ]]; then
+  mkdir -p "$APP/Contents/Resources/Help"
+  cp "$ROOT/docs/USER_GUIDE.md" "$APP/Contents/Resources/Help/USER_GUIDE.md"
+  if [[ -d "$ROOT/docs/images" ]]; then cp -R "$ROOT/docs/images" "$APP/Contents/Resources/Help/images"; fi
+fi
 # SwiftPM resource bundles, should any target ever declare resources.
 find "$BIN_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP/Contents/Resources/" \;
 printf 'APPL????' > "$APP/Contents/PkgInfo"

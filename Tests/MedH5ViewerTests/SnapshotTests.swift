@@ -34,6 +34,14 @@ final class SnapshotTests: XCTestCase {
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--edit", "everything"]))
         XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--window", "settings-editing", "--out", "o"]).auxiliaryWindow,
                        "settings-editing")
+        let panel = try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--window", "clinical", "--cutoff", "36h",
+                                               "--select", "report0_v2"])
+        XCTAssertEqual(panel.auxiliaryWindow, "clinical")
+        XCTAssertEqual(panel.clinicalCutoffHours, 36)
+        for name in ["validate", "verify", "document", "label-set", "help", "shortcuts", "acknowledgements", "import-nifti"] {
+            XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--out", "o", "--window", name]).auxiliaryWindow, name)
+        }
+        XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--window", "nope"]))
     }
 
     /// The snapshot mode's scripted edits drive every editing tool.

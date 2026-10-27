@@ -41,8 +41,10 @@ public struct SnapshotOptions: Equatable {
     public var volumeMode: String?
     public var surfaces: String?
     /// Another window to capture instead of a document: `welcome` or
-    /// `settings`.
+    /// `settings`, or a panel or app window (`AuxiliarySnapshot.windows`).
     public var auxiliaryWindow: String?
+    /// The clinical window's cutoff, in hours of the subject clock.
+    public var clinicalCutoffHours: Double?
     /// The tool selected (after a scripted edit).
     public var tool: ViewerTool?
     /// A scripted edit made before the capture, to look at the editing
@@ -78,6 +80,10 @@ public struct SnapshotOptions: Equatable {
       --timeout <seconds>                  give up after this long (120)
       --window welcome|settings[-editing…] capture that window instead of a document (a Settings
                                            pane: settings-general, -rendering, -editing, -performance)
+      --window validate|verify|document|label-set|clinical|help|shortcuts|acknowledgements|import-nifti
+                                           a panel of the document, or an app window; --select picks a
+                                           page, class, event or filter in it
+      --cutoff <hours>                     the clinical window's cutoff on the subject clock
       --3d-mode dvr|mip|minip|average|isosurface
       --3d-surfaces raycast|meshes         how segmentations show in 3-D
       --tool <name>                        the tool: navigate, window-level, pan, zoom, ruler, angle,
@@ -168,7 +174,8 @@ public struct SnapshotOptions: Equatable {
             case "--window":
                 let v = try value(a).lowercased()
                 let panes = ["settings-general", "settings-rendering", "settings-editing", "settings-performance"]
-                guard ["welcome", "settings", "preferences"].contains(v) || panes.contains(v) else {
+                guard ["welcome", "settings", "preferences"].contains(v) || panes.contains(v)
+                        || AuxiliarySnapshot.windows.contains(v) else {
                     throw ParseError(description: "unknown window \(v)")
                 }
                 o.auxiliaryWindow = v == "preferences" ? "settings" : v
@@ -180,6 +187,10 @@ public struct SnapshotOptions: Equatable {
                 let v = try value(a).lowercased()
                 guard ["raycast", "meshes"].contains(v) else { throw ParseError(description: "unknown surface style \(v)") }
                 o.surfaces = v
+            case "--cutoff":
+                let v = try value(a)
+                guard let h = Double(v.lowercased().replacingOccurrences(of: "h", with: "")) else { throw ParseError(description: "bad cutoff \(v)") }
+                o.clinicalCutoffHours = h
             case "--tool":
                 let v = try value(a)
                 guard let t = ViewerTool(argument: v) else { throw ParseError(description: "unknown tool \(v)") }

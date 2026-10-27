@@ -80,6 +80,9 @@ final class Workspace {
     var alert: AppAlert?
     private(set) var attributes: [String: AttributeState] = [:]
 
+    /// What the document's panels and the sidebar share (pending edits'
+    /// revision; Windows/AuxiliaryState.swift).
+    @ObservationIgnored let auxiliary = AuxiliaryState()
     /// The live viewport controllers (made by the viewer's views).
     @ObservationIgnored let viewports = ViewportRegistry()
     /// The editing tools' state: active segmentation and annotation, tool
