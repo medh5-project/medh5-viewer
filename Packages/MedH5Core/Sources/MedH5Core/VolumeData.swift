@@ -106,6 +106,24 @@ public final class VolumeData: @unchecked Sendable {
         UnsafeMutableBufferPointer(start: pointer(as: type), count: count)
     }
 
+    /// Calls `body` with the elements as `T`, keeping the volume alive for
+    /// the duration of the call. Prefer this to `pointer(as:)` when the
+    /// volume could otherwise be released while the pointer is in use (a
+    /// temporary, or the last reference held by a value about to go away).
+    @inlinable
+    public func withUnsafeMutableBufferPointer<T: VoxelScalar, R>(
+        as type: T.Type,
+        _ body: (UnsafeMutableBufferPointer<T>) throws -> R
+    ) rethrows -> R {
+        try withExtendedLifetime(self) { try body(buffer(as: type)) }
+    }
+
+    /// Calls `body` with the raw bytes, keeping the volume alive for the call.
+    @inlinable
+    public func withUnsafeMutableRawBufferPointer<R>(_ body: (UnsafeMutableRawBufferPointer) throws -> R) rethrows -> R {
+        try withExtendedLifetime(self) { try body(rawBuffer) }
+    }
+
     /// C-order linear index of a full index (one entry per axis).
     @inline(__always)
     public func linearIndex(_ index: [Int]) -> Int {
@@ -204,8 +222,16 @@ public final class VolumeData: @unchecked Sendable {
     }
 
     /// Calls the visitor with the elements as their Swift type (`UInt8` for
-    /// `bool`), so that generic code runs specialised per type.
+    /// `bool`), so that generic code runs specialised per type. Inlinable,
+    /// so a visitor in another module is specialised too; the volume is
+    /// kept alive while the visitor runs.
+    @inlinable
     public func visit<V: VoxelVisitor>(_ visitor: V) -> V.Result {
+        withExtendedLifetime(self) { visitUnretained(visitor) }
+    }
+
+    @inlinable
+    internal func visitUnretained<V: VoxelVisitor>(_ visitor: V) -> V.Result {
         func call<T: VoxelScalar>(_ t: T.Type) -> V.Result {
             visitor.visit(UnsafeBufferPointer(start: baseAddress.assumingMemoryBound(to: T.self), count: count))
         }

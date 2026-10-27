@@ -164,3 +164,21 @@ final class VolumeDataTests: XCTestCase {
         XCTAssertEqual(ScalarType.int64.gpuCompatible, .float32)
     }
 }
+
+final class VolumeAccessTests: XCTestCase {
+    func testScopedBufferAccessKeepsTheVolumeAlive() {
+        let sum = VolumeData(shape: [4], values: [Int16(1), 2, 3, 4])
+            .withUnsafeMutableBufferPointer(as: Int16.self) { $0.reduce(0) { $0 + Int($1) } }
+        XCTAssertEqual(sum, 10)
+    }
+
+    func testVisitorRunsOnTheStoredType() {
+        struct Max: VoxelVisitor {
+            func visit<T: VoxelScalar>(_ values: UnsafeBufferPointer<T>) -> Double {
+                values.map(\.doubleValue).max() ?? .nan
+            }
+        }
+        XCTAssertEqual(VolumeData(shape: [3], values: [Float(-1), 7.5, 2]).visit(Max()), 7.5)
+        XCTAssertEqual(VolumeData(shape: [2], values: [UInt16(9), 65535]).visit(Max()), 65535)
+    }
+}
