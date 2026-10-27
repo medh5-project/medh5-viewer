@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# SwiftPM / Xcode
+.build/
+.swiftpm/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+Package.resolved
+
+# Rust bridge
+bridge/target/
+
+# Build products (made by scripts/)
+build/
+dist/
+Packages/MedH5Kit/Frameworks/
+
+# Test scratch
+*.medh5.tmp*
+Tests/Fixtures/generated/
