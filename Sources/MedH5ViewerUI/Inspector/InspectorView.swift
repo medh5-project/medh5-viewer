@@ -12,8 +12,10 @@ struct InspectorView: View {
             Group {
                 switch workspace.inspectorTab {
                 case .layers: LayersInspector(workspace: workspace)
+                case .segmentEditor: SegmentEditorInspector(workspace: workspace)
+                case .annotations: AnnotationsInspector(workspace: workspace)
+                case .measurements: MeasurementsInspector(workspace: workspace)
                 case .info: InfoInspector(workspace: workspace)
-                case .segmentEditor, .annotations, .measurements: LaterPhasePlaceholder(tab: workspace.inspectorTab)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -45,36 +47,6 @@ struct InspectorTabBar: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-    }
-}
-
-/// The tabs of the editing phase.
-struct LaterPhasePlaceholder: View {
-    let tab: InspectorTab
-
-    var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: tab.symbol)
-                .font(.system(size: 30, weight: .light))
-                .foregroundStyle(.tertiary)
-            Text(tab.title).font(.headline)
-            Text(message)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 230)
-        }
-        .padding(.top, 60)
-        .frame(maxWidth: .infinity)
-    }
-
-    private var message: String {
-        switch tab {
-        case .segmentEditor: return "Painting, filling and refining segmentations comes with the editing tools in a later version."
-        case .annotations: return "Drawing and editing boxes, points, polylines and contours comes in a later version."
-        case .measurements: return "Rulers, angles and ROI statistics come in a later version."
-        default: return ""
-        }
     }
 }
 
