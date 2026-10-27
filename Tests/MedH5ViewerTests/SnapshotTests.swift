@@ -38,6 +38,12 @@ final class SnapshotTests: XCTestCase {
                                                "--select", "report0_v2"])
         XCTAssertEqual(panel.auxiliaryWindow, "clinical")
         XCTAssertEqual(panel.clinicalCutoffHours, 36)
+        XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--slab", "mip:30"]).slab,
+                       SlabSettings(mode: .maximum, thickness: 30))
+        XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--slab", "average"]).slab,
+                       SlabSettings(mode: .mean, thickness: 10))
+        XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--slab", "mip:0"]))
+        XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--slab", "max"]))
         for name in ["validate", "verify", "document", "label-set", "help", "shortcuts", "acknowledgements", "import-nifti"] {
             XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--out", "o", "--window", name]).auxiliaryWindow, name)
         }

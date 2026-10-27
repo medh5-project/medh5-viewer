@@ -72,4 +72,35 @@ final class FrameTests: XCTestCase {
         let texture = try XCTUnwrap(w.store.ready(.imageFrame("photo", frame: [0]), as: TextureResource.self))
         XCTAssertEqual(texture.texture.content, .rgb)
     }
+
+    /// A 2-D image is one plane, its own: the view names no anatomical plane,
+    /// counts no slices, puts no letters on its edges, offers no plane to
+    /// pick and projects no slab.
+    func testATwoDimensionalImageShowsItsOwnPlane() throws {
+        let dir = TemporaryDirectory("planar")
+        let w = Workspace(file: try SampleFile.open(try Self.makeSample(in: dir)), displayName: "f", context: RenderContext.shared)
+        w.showAsBase("photo")
+        w.setLayout(.single)
+        w.viewer.slab = SlabSettings(mode: .maximum, thickness: 20)
+        let built = SliceSceneBuilder(workspace: w, viewport: .slice(.axial)).build(size: SIMD2(64, 64), scale: 1)
+        XCTAssertEqual(built.presentation.title, "2-D")
+        XCTAssertNil(built.presentation.orientation)
+        XCTAssertFalse(built.presentation.topLeft.contains { $0.hasPrefix("Slice") })
+        XCTAssertFalse(built.scene?.slab.isActive ?? false)
+        XCTAssertFalse(ViewerControls.isNeeded(w))
+    }
+
+    /// The thick slab of View ▸ Thick Slab reaches the scene of a 3-D image,
+    /// and the corner text says so.
+    func testTheThickSlabReachesTheScene() throws {
+        let dir = TemporaryDirectory("slab")
+        let w = Workspace(file: try SampleFile.open(try Self.makeSample(in: dir)), displayName: "f", context: RenderContext.shared)
+        w.showAsBase("dyn")
+        w.viewer.slab = SlabSettings(mode: .maximum, thickness: 20)
+        let built = SliceSceneBuilder(workspace: w, viewport: .slice(.axial)).build(size: SIMD2(64, 64), scale: 1)
+        let scene = try XCTUnwrap(built.scene)
+        XCTAssertEqual(scene.slab, SlabSettings(mode: .maximum, thickness: 20))
+        XCTAssertTrue(built.presentation.bottomRight.contains { $0.hasSuffix("MIP 20 mm") }, "\(built.presentation.bottomRight)")
+        XCTAssertNotEqual(built.presentation.title, "2-D")
+    }
 }

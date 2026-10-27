@@ -30,6 +30,9 @@ final class ViewportPresentation {
     var topRight: [String] = []
     var bottomLeft: [String] = []
     var bottomRight: [String] = []
+    /// How to use the view, longest first: the first that fits is shown,
+    /// or none.
+    var hint: [String] = []
     /// Classification labels (corner badges).
     var badges: [String] = []
     /// Layers not drawn, and why.
@@ -51,6 +54,7 @@ final class ViewportPresentation {
         if topRight != p.topRight { topRight = p.topRight }
         if bottomLeft != p.bottomLeft { bottomLeft = p.bottomLeft }
         if bottomRight != p.bottomRight { bottomRight = p.bottomRight }
+        if hint != p.hint { hint = p.hint }
         if badges != p.badges { badges = p.badges }
         if notes != p.notes { notes = p.notes }
         if orientation != p.orientation { orientation = p.orientation }
@@ -69,6 +73,7 @@ struct PresentationData {
     var topRight: [String] = []
     var bottomLeft: [String] = []
     var bottomRight: [String] = []
+    var hint: [String] = []
     var badges: [String] = []
     var notes: [String] = []
     var orientation: OrientationLetters?

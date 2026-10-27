@@ -170,7 +170,7 @@ struct VolumeSceneBuilder {
         if state.mode == .isosurface { tl.append("Level \(Format.number(state.isoValue, digits: 1))") }
         if state.clipEnabled { tl.append("Clipped") }
         p.topLeft = tl
-        p.bottomRight = ["Drag to orbit · ⌥-drag to pan · scroll to zoom"]
+        p.hint = ["Drag to orbit · ⌥-drag to pan · scroll to zoom", "Drag to orbit"]
         p.loading = loading
         p.notes = notes
         if viewer.showsOrientationLabels {

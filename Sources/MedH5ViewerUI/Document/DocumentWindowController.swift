@@ -84,6 +84,18 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         for layer in workspace.activeStack.layers where layer.isImage { layer.interpolation = i }
     }
 
+    @objc func selectSlabMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let mode = SlabMode(rawValue: raw) else { return }
+        viewer.slab.mode = mode
+    }
+
+    /// Choosing a thickness while the slab is off turns on a MIP.
+    @objc func selectSlabThickness(_ sender: NSMenuItem) {
+        guard let mm = sender.representedObject as? Double else { return }
+        viewer.slab.thickness = mm
+        if viewer.slab.mode == .none { viewer.slab.mode = .maximum }
+    }
+
     @objc func resetView(_ sender: Any?) { viewer.resetFraming() }
     @objc func zoomIn(_ sender: Any?) { viewer.zoom(by: 1.25) }
     @objc func zoomOut(_ sender: Any?) { viewer.zoom(by: 0.8) }
@@ -210,6 +222,12 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         case #selector(selectInterpolation(_:)):
             item.state = (item.representedObject as? String) == workspace.activeStack.base?.interpolation.rawValue ? .on : .off
             return workspace.activeStack.base != nil
+        case #selector(selectSlabMode(_:)):
+            item.state = (item.representedObject as? String) == viewer.slab.mode.rawValue ? .on : .off
+            return workspace.primary.base != nil
+        case #selector(selectSlabThickness(_:)):
+            item.state = viewer.slab.isActive && (item.representedObject as? Double) == viewer.slab.thickness ? .on : .off
+            return workspace.primary.base != nil
         case #selector(selectColormap(_:)):
             item.state = (item.representedObject as? String) == workspace.activeStack.base?.colormap.rawValue ? .on : .off
             return workspace.activeStack.base != nil

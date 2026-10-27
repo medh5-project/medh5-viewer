@@ -109,6 +109,7 @@ final class SnapshotRunner {
 
     private func configure(_ workspace: Workspace) {
         if let layout = options.layout { workspace.setLayout(layout) }
+        if let slab = options.slab { workspace.viewer.slab = slab }
         if let plane = options.plane {
             workspace.viewer.singlePlane = plane
             workspace.viewer.comparePlane = plane

@@ -35,7 +35,7 @@ struct LayersInspector: View {
     private func stackCaption(_ stack: LayerStack) -> String {
         var view: String
         switch workspace.viewer.activeViewport {
-        case .slice(let p): view = "\(p.title) view"
+        case .slice(let p): view = workspace.referenceGrid(of: stack)?.is2D == true ? "2-D view" : "\(p.title) view"
         case .volume: view = "3-D view"
         case .compareLeft: view = "Compare, left"
         case .compareRight: view = "Compare, right"

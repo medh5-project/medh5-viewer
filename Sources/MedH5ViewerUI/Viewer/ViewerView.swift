@@ -96,7 +96,8 @@ struct ViewerControls: View {
 
     static func isNeeded(_ w: Workspace) -> Bool {
         let layout = w.viewer.layout
-        return layout == .single || layout == .compare || frameAxes(w).time != nil || frameAxes(w).channel != nil
+        let planar = w.referenceGrid(of: w.primary)?.is2D == true
+        return (layout == .single && !planar) || layout == .compare || frameAxes(w).time != nil || frameAxes(w).channel != nil
     }
 
     /// The base image's time axis length (with values) and channel names.
@@ -115,12 +116,16 @@ struct ViewerControls: View {
 
     var body: some View {
         let viewer = workspace.viewer
+        // A 2-D image shows its own plane only: no plane to pick.
+        let planar = workspace.referenceGrid(of: workspace.primary)?.is2D == true
         HStack(spacing: 16) {
-            if viewer.layout == .single {
+            if viewer.layout == .single && !planar {
                 planePicker(selection: Binding(get: { viewer.singlePlane }, set: { viewer.singlePlane = $0 }))
             }
             if viewer.layout == .compare {
-                planePicker(selection: Binding(get: { viewer.comparePlane }, set: { viewer.comparePlane = $0 }))
+                if !planar {
+                    planePicker(selection: Binding(get: { viewer.comparePlane }, set: { viewer.comparePlane = $0 }))
+                }
                 compareTimepoints
             }
             let axes = Self.frameAxes(workspace)

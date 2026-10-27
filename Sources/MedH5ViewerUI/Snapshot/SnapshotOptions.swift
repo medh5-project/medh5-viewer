@@ -40,6 +40,8 @@ public struct SnapshotOptions: Equatable {
     /// 3-D rendering mode and segmentation surface style.
     public var volumeMode: String?
     public var surfaces: String?
+    /// The slice views' thick slab.
+    public var slab: SlabSettings?
     /// Another window to capture instead of a document: `welcome` or
     /// `settings`, or a panel or app window (`AuxiliarySnapshot.windows`).
     public var auxiliaryWindow: String?
@@ -86,6 +88,7 @@ public struct SnapshotOptions: Equatable {
       --cutoff <hours>                     the clinical window's cutoff on the subject clock
       --3d-mode dvr|mip|minip|average|isosurface
       --3d-surfaces raycast|meshes         how segmentations show in 3-D
+      --slab mip|minip|average[:<mm>]      a thick slab in the slice views (10 mm)
       --tool <name>                        the tool: navigate, window-level, pan, zoom, ruler, angle,
                                            roi, brush, eraser, fill, box, point, polyline, contour
       --edit segment|annotate|measure|all  a scripted edit before the capture (QA): a new
@@ -187,6 +190,14 @@ public struct SnapshotOptions: Equatable {
                 let v = try value(a).lowercased()
                 guard ["raycast", "meshes"].contains(v) else { throw ParseError(description: "unknown surface style \(v)") }
                 o.surfaces = v
+            case "--slab":
+                let v = try value(a).lowercased()
+                let parts = v.split(separator: ":", maxSplits: 1).map(String.init)
+                let modes: [String: SlabMode] = ["mip": .maximum, "minip": .minimum, "average": .mean]
+                guard let mode = modes[parts[0]], let mm = parts.count > 1 ? Double(parts[1]) : 10, mm > 0 else {
+                    throw ParseError(description: "bad slab \(v) (mip, minip or average, then :<mm>)")
+                }
+                o.slab = SlabSettings(mode: mode, thickness: mm)
             case "--cutoff":
                 let v = try value(a)
                 guard let h = Double(v.lowercased().replacingOccurrences(of: "h", with: "")) else { throw ParseError(description: "bad cutoff \(v)") }

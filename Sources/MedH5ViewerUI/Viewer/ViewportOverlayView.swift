@@ -9,14 +9,16 @@ struct SliceViewportOverlay: View {
 
     private let font = Font.system(size: 11, weight: .medium).monospacedDigit()
 
+    private var showsLetters: Bool { presentation.showsOrientation && presentation.orientation != nil }
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 labels
-                if presentation.showsOrientation, let o = presentation.orientation {
+                if showsLetters, let o = presentation.orientation {
                     orientationLetters(o, size: geo.size)
                 }
-                corners
+                corners(width: geo.size.width)
                 if presentation.isActive {
                     Rectangle()
                         .strokeBorder(Color.accentColor.opacity(0.9), lineWidth: 2)
@@ -36,28 +38,35 @@ struct SliceViewportOverlay: View {
         .environment(\.colorScheme, .dark)
     }
 
-    private var corners: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top) {
+    /// The four corners' text. Each side keeps to its half of the view, clear
+    /// of the orientation letter in the middle of the edge: a narrow view
+    /// cuts long lines short rather than writing them over the letter.
+    private func corners(width: CGFloat) -> some View {
+        let gap: CGFloat = showsLetters ? 40 : 12
+        let side = max(40, (width - 20 - gap) / 2)
+        return VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 5) {
                         Circle().fill(presentation.titleColor).frame(width: 7, height: 7)
-                        Text(presentation.title).font(.system(size: 11, weight: .semibold))
+                        Text(presentation.title).font(.system(size: 11, weight: .semibold)).lineLimit(1)
                     }
                     .padding(.bottom, 1)
                     ForEach(Array(presentation.topLeft.enumerated()), id: \.offset) { _, line in
                         Text(line).font(font).foregroundStyle(.white.opacity(0.78)).lineLimit(1)
                     }
                 }
-                Spacer(minLength: 12)
+                .frame(maxWidth: side, alignment: .leading)
+                Spacer(minLength: gap)
                 VStack(alignment: .trailing, spacing: 2) {
                     ForEach(Array(presentation.topRight.enumerated()), id: \.offset) { _, line in
                         Text(line).font(font).foregroundStyle(.white.opacity(0.78)).lineLimit(1)
                     }
                 }
+                .frame(maxWidth: side, alignment: .trailing)
             }
             Spacer(minLength: 0)
-            HStack(alignment: .bottom) {
+            HStack(alignment: .bottom, spacing: 0) {
                 VStack(alignment: .leading, spacing: 3) {
                     ForEach(presentation.badges, id: \.self) { badge in
                         Label(badge, systemImage: "tag.fill")
@@ -67,10 +76,11 @@ struct SliceViewportOverlay: View {
                             .background(Capsule().fill(Color.accentColor.opacity(0.85)))
                     }
                     ForEach(Array(presentation.bottomLeft.enumerated()), id: \.offset) { _, line in
-                        Text(line).font(font).foregroundStyle(.white.opacity(0.78))
+                        Text(line).font(font).foregroundStyle(.white.opacity(0.78)).lineLimit(1)
                     }
                 }
-                Spacer(minLength: 12)
+                .frame(maxWidth: side, alignment: .leading)
+                Spacer(minLength: gap)
                 VStack(alignment: .trailing, spacing: 2) {
                     ForEach(Array(presentation.notes.prefix(4).enumerated()), id: \.offset) { _, note in
                         Label(note, systemImage: "exclamationmark.triangle.fill")
@@ -83,7 +93,16 @@ struct SliceViewportOverlay: View {
                     ForEach(Array(presentation.bottomRight.enumerated()), id: \.offset) { _, line in
                         Text(line).font(font).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
                     }
+                    if !presentation.hint.isEmpty {
+                        ViewThatFits(in: .horizontal) {
+                            ForEach(presentation.hint, id: \.self) { hint in
+                                Text(hint).font(font).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
+                            }
+                            Color.clear.frame(width: 0, height: 0)
+                        }
+                    }
                 }
+                .frame(maxWidth: side, alignment: .trailing)
             }
         }
         .foregroundStyle(.white)

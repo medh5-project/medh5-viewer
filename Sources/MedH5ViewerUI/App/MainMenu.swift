@@ -149,6 +149,17 @@ enum MainMenu {
         let interpolationItem = add(m, "Interpolation", nil)
         interpolationItem.submenu = interpolation
         interpolationItem.isEnabled = true
+        let slab = NSMenu(title: "Thick Slab")
+        for mode in SlabMode.allCases {
+            add(slab, mode.title, #selector(DocumentWindowController.selectSlabMode(_:)), represented: mode.rawValue)
+        }
+        slab.addItem(.separator())
+        for mm in [5.0, 10, 20, 40] {
+            add(slab, "\(Int(mm)) mm", #selector(DocumentWindowController.selectSlabThickness(_:)), represented: mm)
+        }
+        let slabItem = add(m, "Thick Slab", nil)
+        slabItem.submenu = slab
+        slabItem.isEnabled = true
         m.addItem(.separator())
         add(m, "Reset View", #selector(DocumentWindowController.resetView(_:)), "0")
         add(m, "Zoom In", #selector(DocumentWindowController.zoomIn(_:)), "=")

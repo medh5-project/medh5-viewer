@@ -267,3 +267,25 @@ public enum ReadOnlyReason: Hashable, Sendable {
         }
     }
 }
+
+extension SlabMode {
+    /// The View ▸ Thick Slab item.
+    var title: String {
+        switch self {
+        case .none: return "Off"
+        case .maximum: return "Maximum Intensity (MIP)"
+        case .minimum: return "Minimum Intensity (MinIP)"
+        case .mean: return "Average Intensity"
+        }
+    }
+
+    /// The view's corner text.
+    var shortTitle: String {
+        switch self {
+        case .none: return ""
+        case .maximum: return "MIP"
+        case .minimum: return "MinIP"
+        case .mean: return "Average"
+        }
+    }
+}

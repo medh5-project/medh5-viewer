@@ -86,6 +86,9 @@ final class ViewerModel {
     var showsCrosshair = true
     var showsOverlays = true
     var showsOrientationLabels = true
+    /// The slice views' thick slab: images projected over this thickness
+    /// along the plane's normal (off until a mode is chosen).
+    var slab = SlabSettings(mode: .none, thickness: 10)
     /// The view that receives keyboard commands and whose stack the
     /// inspector shows: the one last chosen, or the first visible one when
     /// the layout no longer shows it.

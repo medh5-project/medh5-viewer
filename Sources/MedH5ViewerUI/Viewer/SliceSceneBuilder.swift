@@ -72,13 +72,16 @@ struct SliceSceneBuilder {
         var p = PresentationData()
         p.isActive = viewer.activeViewport == viewport && viewer.visibleViewports.count > 1
         let plane = viewer.plane(of: viewport)
-        p.title = plane.title
-        p.titleColor = PlaneColors.color(plane)
+        let reference = workspace.referenceGrid(of: stack)
+        // A 2-D image has one plane, its own, whichever plane the view asks for.
+        let planeTitle = reference?.is2D == true ? "2-D" : plane.title
+        p.title = planeTitle
+        p.titleColor = reference?.is2D == true ? .white : PlaneColors.color(plane)
         p.showsOrientation = viewer.showsOrientationLabels
         if viewport == .compareLeft || viewport == .compareRight, let tp = workspace.timepoint(of: stack) {
-            p.title = "\(plane.title) · \(workspace.timepointTitle(tp))"
+            p.title = "\(planeTitle) · \(workspace.timepointTitle(tp))"
         }
-        guard let reference = workspace.referenceGrid(of: stack), let base = stack.base else {
+        guard let reference, let base = stack.base else {
             p.placeholder = stack.layers.isEmpty ? "No image to show" : "Choose a base image"
             return Result(scene: nil, camera: nil, fitCamera: nil, presentation: p)
         }
@@ -93,6 +96,8 @@ struct SliceSceneBuilder {
         let context = store.context
 
         var scene = SliceScene(camera: cam)
+        // A 2-D image has no depth to project over.
+        if !reference.is2D { scene.slab = viewer.slab }
         var overlays: [Overlay] = []
         var labels: [ViewportLabel] = []
         var loading: [LoadingItem] = []
@@ -203,7 +208,10 @@ struct SliceSceneBuilder {
         let axis = Self.dominantAxis(cam.normal)
         let axisName = ["x", "y", "z"][axis]
         let slice = s.index.roundedInt.map { "\($0 + 1)/\(s.count)" } ?? "—"
-        tl.append("Slice \(slice) · \(axisName) \(Format.fixed(cam.center[axis], digits: 1)) \(reference.units)")
+        // A 2-D image is one plane: no slice to count.
+        if !reference.is2D {
+            tl.append("Slice \(slice) · \(axisName) \(Format.fixed(cam.center[axis], digits: 1)) \(reference.units)")
+        }
         if let info = baseInfo, let grid = summary.grid(info.grid) {
             if let t = grid.timeAxis, grid.shape[t] > 1 {
                 let value = grid.timeValues?[safe: base.timeIndex].map { " (\(Format.number($0)) \(grid.timeUnits ?? ""))" } ?? ""
@@ -221,7 +229,9 @@ struct SliceSceneBuilder {
             tr.append("W \(Format.number(base.windowWidth, digits: 1)) · L \(Format.number(base.windowCenter, digits: 1))\(units)")
         }
         p.topRight = tr
-        p.bottomRight = ["Zoom \((viewer.viewState(viewport).zoom * 100).roundedInt ?? 100)% · \(base.interpolation.rawValue.capitalized)"]
+        var br = "Zoom \((viewer.viewState(viewport).zoom * 100).roundedInt ?? 100)% · \(base.interpolation.rawValue.capitalized)"
+        if scene.slab.isActive { br += " · \(scene.slab.mode.shortTitle) \(Format.number(scene.slab.thickness, digits: 1)) mm" }
+        p.bottomRight = [br]
         var bl: [String] = []
         if let tp = workspace.timepoint(of: stack), viewport != .compareLeft && viewport != .compareRight {
             bl.append(workspace.timepointTitle(tp))
@@ -238,7 +248,9 @@ struct SliceSceneBuilder {
         p.notes = notes
         p.loading = loading
         p.labels = labels
-        if viewer.showsOrientationLabels {
+        // The plane of a 2-D image (a radiograph) is not an axial slice of
+        // the patient: its edges get no anatomical letters.
+        if viewer.showsOrientationLabels && !reference.is2D {
             let cs = reference.coordinateSystem
             p.orientation = OrientationLetters(left: cs.label(forWorldDirection: -cam.axes.right),
                                                right: cs.label(forWorldDirection: cam.axes.right),
