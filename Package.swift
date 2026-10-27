@@ -42,7 +42,13 @@ let package = Package(
         ),
         .testTarget(
             name: "MedH5ViewerTests",
-            dependencies: ["MedH5ViewerUI"],
+            dependencies: [
+                "MedH5ViewerUI",
+                .product(name: "MedH5Core", package: "MedH5Core"),
+                .product(name: "MedH5Kit", package: "MedH5Kit"),
+                .product(name: "MedH5Render", package: "MedH5Render"),
+                .product(name: "MedH5Editing", package: "MedH5Editing"),
+            ],
             path: "Tests/MedH5ViewerTests"
         ),
     ],
