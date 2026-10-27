@@ -1,5 +1,6 @@
 import Foundation
 import simd
+import MedH5Core
 
 /// The voxel changes of one segmentation layer: changed linear indices with
 /// their old and new values, block-compressed in chunks of 4096 voxels.

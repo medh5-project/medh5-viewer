@@ -1,6 +1,7 @@
 import Foundation
 import Metal
 import simd
+import MedH5Core
 
 /// Brick maps for empty-space skipping: one texel per 8³ voxels (plus a
 /// one-voxel apron). Images store the (min, max) texel of the brick
@@ -35,9 +36,10 @@ enum BrickMap {
     /// Encodes `kernel` over the bricks a voxel region (padded index order)
     /// touches, apron included.
     static func encode(_ kernel: String, context: RenderContext, source: any MTLTexture, target: any MTLTexture,
-                       region: VoxelRegion, dimensions dims: SIMD3<Int>,
+                       region: VoxelBox, dimensions dims: SIMD3<Int>,
                        commandBuffer: any MTLCommandBuffer) throws {
-        guard let r = region.expanded(by: 1).clamped(to: dims) else { return }
+        let r = region.expanded(by: 1).clamped(to: dims)
+        guard !r.isEmpty else { return }
         // Voxel (k0, k1, k2) → brick (x, y, z) = (k2, k1, k0) / 8.
         let lo = SIMD3(r.origin.z / size, r.origin.y / size, r.origin.x / size)
         let hi = SIMD3((r.upper.z - 1) / size, (r.upper.y - 1) / size, (r.upper.x - 1) / size)
@@ -169,7 +171,7 @@ final class LabelIndicatorCache {
         }
         let tableVersion = table.visibilityVersion
         let volumeVersion = volume.version
-        var region: VoxelRegion?
+        var region: VoxelBox?
         if entry.tableVersion != tableVersion || entry.volumeVersion < 0 {
             region = .whole(volume.dimensions)
         } else if entry.volumeVersion != volumeVersion {
@@ -188,8 +190,9 @@ final class LabelIndicatorCache {
     }
 
     private func encodeIndicator(volume: VolumeTexture, table: LabelLookupTable, target: any MTLTexture,
-                                 region: VoxelRegion, commandBuffer: any MTLCommandBuffer) throws {
-        guard let r = region.clamped(to: volume.dimensions) else { return }
+                                 region: VoxelBox, commandBuffer: any MTLCommandBuffer) throws {
+        let r = region.clamped(to: volume.dimensions)
+        guard !r.isEmpty else { return }
         let pipeline = try context.computePipeline("label_indicator_kernel")
         guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
             throw RenderError.allocationFailed("compute encoder")

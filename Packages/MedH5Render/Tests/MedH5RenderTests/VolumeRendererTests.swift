@@ -219,15 +219,15 @@ final class VolumeRendererCacheTests: XCTestCase {
         // Paint a block in the middle and upload only it.
         let p = labels.pointer(as: UInt16.self)
         for a in 15..<25 { for b in 15..<25 { for c in 15..<25 { p[(a * 40 + b) * 40 + c] = 7 } } }
-        try texture.update(region: VoxelRegion(lower: SIMD3(15, 15, 15), upper: SIMD3(25, 25, 25)), from: labels)
-        XCTAssertEqual(texture.changedRegion(since: 0), VoxelRegion(lower: SIMD3(15, 15, 15), upper: SIMD3(25, 25, 25)))
+        try texture.update(region: VoxelBox(lower: SIMD3(15, 15, 15), upper: SIMD3(25, 25, 25)), from: labels)
+        XCTAssertEqual(texture.changedRegion(since: 0), VoxelBox(lower: SIMD3(15, 15, 15), upper: SIMD3(25, 25, 25)))
         XCTAssertGreaterThan(try renderer.render(scene: scene).pixel(x: 64, y: 64).y, 60, "painted block appears")
         lut.setVisible(false, forClass: 7)
         XCTAssertLessThan(try renderer.render(scene: scene).pixel(x: 64, y: 64).y, 5, "hidden class disappears")
         lut.setVisible(true, forClass: 7)
         // Erase it again.
         for a in 15..<25 { for b in 15..<25 { for c in 15..<25 { p[(a * 40 + b) * 40 + c] = 0 } } }
-        try texture.update(region: VoxelRegion(lower: SIMD3(15, 15, 15), upper: SIMD3(25, 25, 25)), from: labels)
+        try texture.update(region: VoxelBox(lower: SIMD3(15, 15, 15), upper: SIMD3(25, 25, 25)), from: labels)
         XCTAssertLessThan(try renderer.render(scene: scene).pixel(x: 64, y: 64).y, 5, "erased")
     }
 }

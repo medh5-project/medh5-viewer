@@ -1,5 +1,6 @@
 import Foundation
 import simd
+import MedH5Core
 
 /// A set of voxels of one grid, in padded index space, enumerable row by row.
 ///

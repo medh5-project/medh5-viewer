@@ -43,7 +43,7 @@ struct Bench {
         for k0 in 250..<271 { for k1 in 250..<271 { for k2 in 250..<271 { ptr[(k0 * 512 + k1) * 512 + k2] = 10 } } }
         for attempt in 0..<4 {
             start = Date()
-            try lesions.update(region: VoxelRegion(origin: SIMD3(250 + attempt, 250, 250), size: SIMD3(21, 21, 21)),
+            try lesions.update(region: VoxelBox(origin: SIMD3(250 + attempt, 250, 250), size: SIMD3(21, 21, 21)),
                                from: phantom.lesions)
             let submit = Date().timeIntervalSince(start)
             lesions.waitUntilUploaded()

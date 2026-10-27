@@ -336,13 +336,13 @@ final class SliceRendererTests: XCTestCase {
         // Paint a 2x3x3 box on the CPU, upload only that region.
         let ptr = labels.pointer(as: UInt16.self)
         for a in 1..<3 { for b in 4..<7 { for c in 8..<11 { ptr[(a * 16 + b) * 16 + c] = 3 } } }
-        try volume.update(region: VoxelRegion(lower: SIMD3(1, 4, 8), upper: SIMD3(3, 7, 11)), from: labels)
+        try volume.update(region: VoxelBox(lower: SIMD3(1, 4, 8), upper: SIMD3(3, 7, 11)), from: labels)
         let after = try renderer.render(scene: scene)
         XCTAssertPixel(after.pixel(x: Int(p.x), y: Int(p.y)), SIMD3(255, 255, 0))
         // An update from a different object of the same layout goes through staging.
         let copy = labels.copy()
         copy.pointer(as: UInt16.self)[(2 * 16 + 5) * 16 + 9] = 0
-        try volume.update(region: VoxelRegion(origin: SIMD3(2, 5, 9), size: SIMD3(1, 1, 1)), from: copy)
+        try volume.update(region: VoxelBox(origin: SIMD3(2, 5, 9), size: SIMD3(1, 1, 1)), from: copy)
         XCTAssertPixel(try renderer.render(scene: scene).pixel(x: Int(p.x), y: Int(p.y)), SIMD3(0, 0, 0))
     }
 

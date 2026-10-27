@@ -68,7 +68,7 @@ public final class VolumeTexture: @unchecked Sendable {
     private let lock = NSLock()
     private var lastUpload: (any MTLCommandBuffer)?
     private var contentVersion = 0
-    private var changeLog: [(version: Int, region: VoxelRegion)] = []
+    private var changeLog: [(version: Int, region: VoxelBox)] = []
     private static let changeLogLimit = 256
     // Zero-copy link to the source storage, kept for labels so an edited
     // region is blit straight from the editor's memory.
@@ -328,13 +328,14 @@ public final class VolumeTexture: @unchecked Sendable {
     /// Returns immediately; the copy is ordered before any render submitted
     /// afterwards on the context's queue, so an edit is on screen in the
     /// next frame.
-    public func update(region: VoxelRegion, from data: VolumeData) throws {
+    public func update(region: VoxelBox, from data: VolumeData) throws {
         try update(region: region, planes: [data])
     }
 
     /// ``update(region:from:)`` for multi-channel textures (RGB, vectors).
-    public func update(region: VoxelRegion, planes: [VolumeData]) throws {
-        guard let r = region.clamped(to: dimensions) else { return }
+    public func update(region: VoxelBox, planes: [VolumeData]) throws {
+        let r = region.clamped(to: dimensions)
+        guard !r.isEmpty else { return }
         let n = dimensions
         guard planes.allSatisfy({ $0.count == n.x * n.y * n.z }) else {
             throw RenderError.invalidArgument("update data does not have the texture's \(n) layout")
@@ -395,19 +396,19 @@ public final class VolumeTexture: @unchecked Sendable {
 
     /// The union of the regions updated after `version`, `nil` when nothing
     /// changed, or the whole volume when the history no longer reaches back.
-    public func changedRegion(since version: Int) -> VoxelRegion? {
+    public func changedRegion(since version: Int) -> VoxelBox? {
         lock.lock()
         defer { lock.unlock() }
         if version >= contentVersion { return nil }
         guard let first = changeLog.first, first.version <= version + 1 else { return .whole(dimensions) }
-        var region: VoxelRegion?
+        var region: VoxelBox?
         for entry in changeLog where entry.version > version {
             region = region.map { $0.union(entry.region) } ?? entry.region
         }
         return region ?? .whole(dimensions)
     }
 
-    private func recordChange(_ region: VoxelRegion) {
+    private func recordChange(_ region: VoxelBox) {
         lock.lock()
         contentVersion += 1
         changeLog.append((contentVersion, region))

@@ -3,7 +3,8 @@ import simd
 
 /// A box of voxels in a grid's **padded** index space (see `GridGeometry`):
 /// the voxels `lower ..< upper` on each of the three padded axes (half-open,
-/// so `upper - lower` is the extent in voxels).
+/// so `upper - lower` is the extent in voxels). It is the unit in which the
+/// editor reports what it changed and the renderer uploads it.
 ///
 /// medh5 stores boxes at voxel *edges* (spec §8.1): a box `[lo, hi]` covers
 /// `floor(lo + 0.5) ..< floor(hi + 0.5)`, rounding half up. `edgeLower` /
@@ -24,6 +25,18 @@ public struct VoxelBox: Hashable, Sendable, CustomStringConvertible {
         self.lower = .zero
         self.upper = shape
     }
+
+    /// `size` voxels starting at `origin`.
+    public init(origin: SIMD3<Int>, size: SIMD3<Int>) {
+        self.lower = origin
+        self.upper = origin &+ size
+    }
+
+    /// The whole volume of a padded shape.
+    public static func whole(_ shape: SIMD3<Int>) -> VoxelBox { VoxelBox(shape: shape) }
+
+    /// The first voxel (the same as `lower`).
+    public var origin: SIMD3<Int> { lower }
 
     /// One voxel.
     public init(voxel k: SIMD3<Int>) {
@@ -88,7 +101,7 @@ public struct VoxelBox: Hashable, Sendable, CustomStringConvertible {
     public func union(_ other: VoxelBox) -> VoxelBox {
         if isEmpty { return other }
         if other.isEmpty { return self }
-        return VoxelBox(lower: pointwiseMin(lower, other.lower), upper: pointwiseMax(upper, other.upper))
+        return VoxelBox(lower: voxelBoxMin(lower, other.lower), upper: voxelBoxMax(upper, other.upper))
     }
 
     public mutating func formUnion(_ other: VoxelBox) { self = union(other) }
@@ -97,8 +110,8 @@ public struct VoxelBox: Hashable, Sendable, CustomStringConvertible {
     public mutating func include(_ k: SIMD3<Int>) { formUnion(VoxelBox(voxel: k)) }
 
     public func intersection(_ other: VoxelBox) -> VoxelBox {
-        let l = pointwiseMax(lower, other.lower)
-        let u = pointwiseMin(upper, other.upper)
+        let l = voxelBoxMax(lower, other.lower)
+        let u = voxelBoxMin(upper, other.upper)
         let box = VoxelBox(lower: l, upper: u)
         return box.isEmpty ? .empty : box
     }
@@ -121,11 +134,11 @@ public struct VoxelBox: Hashable, Sendable, CustomStringConvertible {
 }
 
 @inline(__always)
-func pointwiseMin(_ a: SIMD3<Int>, _ b: SIMD3<Int>) -> SIMD3<Int> {
+private func voxelBoxMin(_ a: SIMD3<Int>, _ b: SIMD3<Int>) -> SIMD3<Int> {
     SIMD3(Swift.min(a.x, b.x), Swift.min(a.y, b.y), Swift.min(a.z, b.z))
 }
 
 @inline(__always)
-func pointwiseMax(_ a: SIMD3<Int>, _ b: SIMD3<Int>) -> SIMD3<Int> {
+private func voxelBoxMax(_ a: SIMD3<Int>, _ b: SIMD3<Int>) -> SIMD3<Int> {
     SIMD3(Swift.max(a.x, b.x), Swift.max(a.y, b.y), Swift.max(a.z, b.z))
 }

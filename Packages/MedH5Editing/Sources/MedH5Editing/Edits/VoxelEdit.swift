@@ -1,5 +1,6 @@
 import Foundation
 import simd
+import MedH5Core
 
 /// A reversible change to a `SegmentationModel`: voxel changes per layer
 /// (old and new values, block-compressed) and, optionally, a change of the
