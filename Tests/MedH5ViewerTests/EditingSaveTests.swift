@@ -136,7 +136,7 @@ final class EditingSaveTests: XCTestCase {
         let doc = try openDocument(Fixtures.demoCopy(in: dir))
         defer { doc.close() }
         let w = try XCTUnwrap(doc.workspace)
-        for id in ["fiducials_tp0", "centrelines_tp0", "liver_contours_tp0"] { w.editing.show(id) }
+        for id in ["fiducials_tp0", "centrelines_tp0", "liver_contours_tp0", "landmarks_tp0"] { w.editing.show(id) }
         try await w.loadNeeded()
         let before = w.file.summary
         let s = w.editing
@@ -175,6 +175,19 @@ final class EditingSaveTests: XCTestCase {
         driver.click(driver.offset(c, 30, 0))
         await settle()
         XCTAssertEqual(s.draft("fiducials_tp0")?.itemCount, 6)
+        // Keypoints: a click starts an object (its first keypoint), the next
+        // places its next keypoint.
+        s.choose(annotation: "landmarks_tp0")
+        guard case .keypoints(let kp)? = s.draft("landmarks_tp0") else { return XCTFail("keypoints") }
+        let objects = kp.objects.count
+        driver.click(driver.offset(c, -30, 10))
+        await settle()
+        driver.click(driver.offset(c, -20, 20))
+        await settle()
+        guard case .keypoints(let kp2)? = s.draft("landmarks_tp0") else { return XCTFail("keypoints") }
+        XCTAssertEqual(kp2.objects.count, objects + 1)
+        XCTAssertEqual(kp2.objects.last?.visibility.prefix(2).map(\.rawValue), [2, 2])
+        XCTAssertEqual(kp2.objects.last?.visibility.dropFirst(2).allSatisfy { $0 == .unlabelled }, true)
         // A polyline (Return finishes) and a contour (clicking the first
         // vertex closes it) into the demo's own annotations.
         s.choose(annotation: "centrelines_tp0")
@@ -234,6 +247,9 @@ final class EditingSaveTests: XCTestCase {
         guard case .polylines(let pl) = try saved.geometry("centrelines_tp0") else { return XCTFail() }
         XCTAssertEqual(pl.polylines.count, 3)
         XCTAssertEqual(pl.polylines.last?.classID, 7)
+        guard case .keypoints(let k) = try saved.geometry("landmarks_tp0") else { return XCTFail() }
+        XCTAssertEqual(k.points.count, objects + 1)
+        XCTAssertEqual(k.visibility.last?.prefix(2).map { $0 }, [2, 2])
         guard case .contours(let cs) = try saved.geometry("liver_contours_tp0") else { return XCTFail() }
         XCTAssertEqual(cs.polygons.count, 8)
         XCTAssertEqual(cs.polygons.last?.vertices.count, 4)
@@ -241,7 +257,7 @@ final class EditingSaveTests: XCTestCase {
                        before.annotation("liver_contours_tp0")?.annotatedClassIDs, "coverage kept")
         XCTAssertTrue(try saved.verify().ok)
         try strictlyValid(out)
-        let edited2: Set<String> = [boxes, "fiducials_tp0", "centrelines_tp0", "liver_contours_tp0"]
+        let edited2: Set<String> = [boxes, "fiducials_tp0", "centrelines_tp0", "liver_contours_tp0", "landmarks_tp0"]
         for a in before.annotations where !edited2.contains(a.id) {
             XCTAssertEqual(saved.summary.annotation(a.id)?.digest, a.digest, a.id)
         }

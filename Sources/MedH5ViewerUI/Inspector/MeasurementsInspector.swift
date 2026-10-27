@@ -104,6 +104,7 @@ struct MeasurementsInspector: View {
                 Divider()
                 Button("Save Rulers and Angles as Polyline Annotation") { savePolylines(curves) }
                     .disabled(curves.isEmpty || session.readOnlyReason != nil)
+                    .help("Polylines of the active polyline annotation (or a new one), written by the next save; polylines make the file format 1.2")
                 Divider()
                 Button("Delete \(list.count == session.measurements.count ? "All" : "Selected")") {
                     session.deleteMeasurements(Set(list.map(\.id)))

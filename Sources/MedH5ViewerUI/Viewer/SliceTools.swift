@@ -50,6 +50,7 @@ struct ToolEvent {
     static let enterKey: UInt16 = 76
     static let escapeKey: UInt16 = 53
     static let deleteKey: UInt16 = 51
+    static let forwardDeleteKey: UInt16 = 117
 }
 
 /// What a tool knows of the view an event happened in.

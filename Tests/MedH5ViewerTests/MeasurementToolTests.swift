@@ -199,6 +199,107 @@ final class ReadOnlyEditingTests: XCTestCase {
     }
 }
 
+/// ⌫ in a view deletes the selection, after the tool had it.
+@MainActor
+final class DeleteKeyTests: XCTestCase {
+    func testTheDeleteKeyDeletesTheSelectedItemsOrMeasurements() async throws {
+        let dir = TemporaryDirectory("delete-key")
+        let doc = try openDocument(Synthetic.copy(in: dir))
+        defer { doc.close() }
+        let w = try XCTUnwrap(doc.workspace)
+        try await w.loadNeeded()
+        w.viewer.activeViewport = .slice(.axial)
+        w.setCursor(Synthetic.world(3, 6, 6), from: .slice(.axial))
+        let s = w.editing
+        let driver = ToolDriver(workspace: w)
+        s.annotationTarget = .new
+        s.annotationClassID = 1
+        s.select(.point)
+        driver.click(Synthetic.world(3, 2, 2))
+        driver.click(Synthetic.world(3, 8, 8))
+        await settle()
+        let id = try XCTUnwrap(s.listedAnnotation)
+        XCTAssertEqual(s.draft(id)?.itemCount, 2)
+        XCTAssertEqual(s.currentSelection, [1], "the last item drawn is selected")
+        // The polyline tool takes ⌫ for its last vertex first.
+        s.select(.polyline)
+        driver.click(Synthetic.world(3, 1, 1))
+        driver.click(Synthetic.world(3, 1, 5))
+        XCTAssertTrue(driver.send(.keyDown, Synthetic.world(3, 1, 5), key: ToolEvent.deleteKey))
+        XCTAssertEqual(s.draft(id)?.itemCount, 2)
+        XCTAssertTrue(driver.send(.keyDown, Synthetic.world(3, 1, 5), key: ToolEvent.escapeKey))
+        // Then ⌫ deletes the selected item, with any tool.
+        s.select(.navigate)
+        XCTAssertTrue(driver.send(.keyDown, Synthetic.world(3, 1, 5), key: ToolEvent.deleteKey))
+        XCTAssertEqual(s.draft(id)?.itemCount, 1)
+        XCTAssertFalse(driver.send(.keyDown, Synthetic.world(3, 1, 5), key: ToolEvent.deleteKey), "nothing selected")
+        // With the Measurements tab, it deletes the selected measurements.
+        s.select(.ruler)
+        driver.drag([Synthetic.world(3, 1, 1), Synthetic.world(3, 1, 9)])
+        XCTAssertEqual(s.measurements.count, 1)
+        w.showsInspector = true
+        w.inspectorTab = .measurements
+        XCTAssertTrue(driver.send(.keyDown, Synthetic.world(3, 1, 5), key: ToolEvent.deleteKey))
+        XCTAssertTrue(s.measurements.isEmpty)
+    }
+
+    /// Edit ▸ Select All and Delete reach the items through the window
+    /// controller (the responder chain); they are enabled as they apply.
+    func testEditMenuCommandsActOnItems() async throws {
+        let dir = TemporaryDirectory("edit-menu")
+        let doc = try openDocument(Synthetic.copy(in: dir))
+        defer { doc.close() }
+        let w = try XCTUnwrap(doc.workspace)
+        try await w.loadNeeded()
+        w.viewer.activeViewport = .slice(.axial)
+        w.setCursor(Synthetic.world(3, 6, 6), from: .slice(.axial))
+        let s = w.editing
+        let controller = try XCTUnwrap(doc.windowControllers.first as? DocumentWindowController)
+        func enabled(_ action: Selector) -> Bool? {
+            controller.validateEditingMenuItem(NSMenuItem(title: "", action: action, keyEquivalent: ""))
+        }
+        w.inspectorTab = .annotations
+        XCTAssertEqual(enabled(#selector(DocumentWindowController.selectAllEditingItems(_:))), false, "no annotation yet")
+        let driver = ToolDriver(workspace: w)
+        s.annotationTarget = .new
+        s.annotationClassID = 2
+        s.select(.box)
+        driver.drag([Synthetic.world(3, 1, 1), Synthetic.world(3, 4, 4)])
+        await settle()
+        driver.drag([Synthetic.world(3, 6, 6), Synthetic.world(3, 9, 9)])
+        await settle()
+        let id = try XCTUnwrap(s.listedAnnotation)
+        s.select(items: [], of: id)
+        XCTAssertEqual(enabled(#selector(DocumentWindowController.deleteEditingItems(_:))), false, "nothing selected")
+        XCTAssertEqual(enabled(#selector(DocumentWindowController.selectAllEditingItems(_:))), true)
+        controller.selectAllEditingItems(nil)
+        XCTAssertEqual(s.currentSelection, [0, 1])
+        XCTAssertEqual(enabled(#selector(DocumentWindowController.deleteEditingItems(_:))), true)
+        XCTAssertEqual(enabled(#selector(DocumentWindowController.copyEditingItems(_:))), true)
+        controller.deleteEditingItems(nil)
+        XCTAssertEqual(s.draft(id)?.itemCount, 0)
+        XCTAssertEqual(doc.undoManager?.undoActionName, "Delete Items")
+        await settle()
+        let out = dir.file("empty.medh5")
+        let error: Error? = await withCheckedContinuation { continuation in
+            doc.save(to: out, ofType: MedH5Document.typeIdentifier, for: .saveToOperation) { continuation.resume(returning: $0) }
+        }
+        // An annotation emptied of its items saves (it was looked at, nothing is there).
+        XCTAssertNil(error)
+        let saved = try SampleFile.open(out)
+        XCTAssertEqual(saved.summary.annotation(id)?.items, 0)
+        XCTAssertTrue(try Validator.validate(url: out, level: "integrity").ok)
+        saved.close()
+        doc.undoManager?.undo()
+        XCTAssertEqual(s.draft(id)?.itemCount, 2)
+        // Export Measurements is enabled once there is one.
+        XCTAssertEqual(enabled(#selector(DocumentWindowController.exportMeasurements(_:))), false)
+        s.select(.ruler)
+        driver.drag([Synthetic.world(3, 1, 1), Synthetic.world(3, 1, 9)])
+        XCTAssertEqual(enabled(#selector(DocumentWindowController.exportMeasurements(_:))), true)
+    }
+}
+
 /// The undo memory of Preferences bounds what the steps hold.
 @MainActor
 final class UndoMemoryTests: XCTestCase {

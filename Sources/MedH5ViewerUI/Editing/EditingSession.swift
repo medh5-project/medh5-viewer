@@ -258,10 +258,34 @@ final class EditingSession {
             if lastTool != nil { cancelGestures() }
             lastTool = tool
         }
-        guard let handler = tools.handler(for: tool) else { return false }
-        if event.kind.isDown, workspace.viewer.activeViewport != viewport { workspace.viewer.activeViewport = viewport }
-        let context = SliceToolContext(session: self, viewport: viewport, camera: camera)
-        return handler.handle(event, in: context)
+        if let handler = tools.handler(for: tool) {
+            if event.kind.isDown, workspace.viewer.activeViewport != viewport { workspace.viewer.activeViewport = viewport }
+            let context = SliceToolContext(session: self, viewport: viewport, camera: camera)
+            if handler.handle(event, in: context) { return true }
+        }
+        // ⌫ in a view deletes the selection (the tools had it first).
+        if event.kind == .keyDown, event.modifiers.isEmpty,
+           event.keyCode == ToolEvent.deleteKey || event.keyCode == ToolEvent.forwardDeleteKey {
+            return deleteSelection()
+        }
+        return false
+    }
+
+    /// Deletes the selected measurements (the Measurements tab showing) or
+    /// annotation items; returns whether there was a selection to delete.
+    @discardableResult
+    func deleteSelection() -> Bool {
+        if workspace.showsInspector, workspace.inspectorTab == .measurements, !selectedMeasurements.isEmpty {
+            deleteMeasurements(selectedMeasurements)
+            return true
+        }
+        guard !currentSelection.isEmpty, canEditListedItems else { return false }
+        do {
+            try deleteSelectedItems()
+        } catch {
+            report(error)
+        }
+        return true
     }
 
     /// Changes the brush radius by a factor (`[` and `]`).
