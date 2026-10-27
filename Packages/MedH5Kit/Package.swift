@@ -21,11 +21,15 @@ let package = Package(
         .target(
             name: "MedH5Kit",
             dependencies: ["MedH5Core", "MedH5Bridge"],
+            // What the static library needs from the system, exactly as
+            // `cargo rustc --release --target aarch64-apple-darwin --lib
+            // --crate-type staticlib -- --print native-static-libs` lists it:
+            // `-liconv -lSystem -lc -lm`.
             linkerSettings: [
-                .linkedLibrary("c++"),
                 .linkedLibrary("iconv"),
-                .linkedFramework("CoreFoundation"),
-                .linkedFramework("Security"),
+                .linkedLibrary("System"),
+                .linkedLibrary("c"),
+                .linkedLibrary("m"),
             ]
         ),
         .testTarget(name: "MedH5KitTests", dependencies: ["MedH5Kit"]),

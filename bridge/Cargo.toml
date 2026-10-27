@@ -1,0 +1,39 @@
+[package]
+name = "medh5-bridge"
+description = "The C interface between the medh5 format engine and the medh5 Viewer (Swift)"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85.1"
+license = "MIT"
+publish = false
+
+[lib]
+name = "medh5_bridge"
+path = "src/lib.rs"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+medh5 = "=2.2.3"
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+half = "2.4"
+serde = "1"
+
+# A standalone workspace: the bridge never joins another one.
+[workspace]
+
+# HDF5 as the medh5 workspace ships it (vendor/hdf5-metno-src at the v2.2.3
+# tag, with the changes its PATCHES.md lists), so a crafted file cannot hang
+# the viewer's HDF5 any more than it can the medh5 wheels.
+[patch.crates-io]
+hdf5-metno-src = { git = "https://github.com/medh5-project/medh5", tag = "v2.2.3" }
+
+# One build configuration for everything: scripts/build-bridge.sh builds the
+# static library and `cargo test` the tests with `--release --target
+# aarch64-apple-darwin`, so they share one engine and HDF5 build.  An
+# optimised HDF5 is compiled with NDEBUG (a Debug one keeps its assertions
+# and aborts on a damaged file), and the tests catch panics, which unwind.
+[profile.release]
+lto = "thin"
+codegen-units = 4
+panic = "unwind"
+strip = "symbols"

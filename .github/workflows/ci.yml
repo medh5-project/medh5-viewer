@@ -34,7 +34,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            bridge/target
+            build/cargo
           key: bridge-${{ runner.os }}-${{ hashFiles('bridge/Cargo.lock', 'bridge/Cargo.toml') }}
           restore-keys: bridge-${{ runner.os }}-
 

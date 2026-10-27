@@ -1,0 +1,8 @@
+# One build tree: every cargo command in bridge/ builds for Apple silicon at
+# the app's minimum macOS (the C code of HDF5, Blosc2 and the codecs too), so
+# `cargo test --release` reuses what scripts/build-bridge.sh built.
+[build]
+target = "aarch64-apple-darwin"
+
+[env]
+MACOSX_DEPLOYMENT_TARGET = "14.0"

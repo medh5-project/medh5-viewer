@@ -1,7 +1,8 @@
 # Sourced by the build scripts: where build products go.
 #
-# Everything a build makes goes under BUILD_ROOT — Swift's scratch
-# directories (one per package), the app bundle, the packaged artifacts. It
+# Everything a build makes goes under BUILD_ROOT — cargo's target directory
+# (CARGO_TARGET_DIR, unless already set), Swift's scratch directories (one
+# per package), the app bundle, the packaged artifacts. It
 # is $ROOT/build, unless the repository lives in a folder a file provider
 # syncs (iCloud Drive's Desktop & Documents, for one): there every build
 # product would be uploaded, and the provider's extended attributes make
@@ -29,6 +30,7 @@ else
   BUILD_ROOT="$ROOT/build"
 fi
 DIST_DIR="${MEDH5_VIEWER_DIST_DIR:-$BUILD_ROOT/dist}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$BUILD_ROOT/cargo}"
 APP_BUNDLE="$BUILD_ROOT/medh5 Viewer.app"
 
 # The scratch directory `swift build/test --scratch-path` uses for a package
