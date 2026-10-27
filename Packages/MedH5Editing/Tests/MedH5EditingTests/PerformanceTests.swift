@@ -61,9 +61,9 @@ final class PerformanceTests: XCTestCase {
             let d = SIMD3<Double>(k &- c) * SIMD3(1.2, 0.8, 0.8)
             return simd_length_squared(d) < 60 * 60 || (abs(d.x) < 70 && abs(d.y) < 5 && abs(d.z) < 90)
         }
-        let (dil, tDilate) = try time("dilate 5 mm, 256³") { try Morphology.dilate(m, classID: 1, radius: 5) }
+        let (dil, tDilate) = try time("dilate 5 mm, 256³") { try LabelMorphology.dilate(m, classID: 1, radius: 5) }
         XCTAssertGreaterThan(dil.voxelCount, 100_000)
-        let (ero, tErode) = try time("erode 5 mm, 256³") { try Morphology.erode(m, classID: 1, radius: 5) }
+        let (ero, tErode) = try time("erode 5 mm, 256³") { try LabelMorphology.erode(m, classID: 1, radius: 5) }
         XCTAssertGreaterThan(ero.voxelCount, 50_000)
         if isOptimizedBuild {
             XCTAssertLessThan(tDilate, 1.0)

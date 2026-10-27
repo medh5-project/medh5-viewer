@@ -35,7 +35,7 @@ final class MorphologyTests: XCTestCase {
 
     /// Voxels within `r` of a member of `a` (brute force over all pairs).
     private func bruteDilate(_ a: Set<SIMD3<Int>>, _ r: Double, _ g: GridGeometry) -> Set<SIMD3<Int>> {
-        let limit = r * r * (1 + Morphology.tolerance)
+        let limit = r * r * (1 + LabelMorphology.tolerance)
         let all = lattice(g)
         let members = all.filter { a.contains($0.0) }.map(\.1)
         var out = Set<SIMD3<Int>>()
@@ -45,7 +45,7 @@ final class MorphologyTests: XCTestCase {
 
     /// Members of `a` with no grid voxel outside `a` within `r` (brute force).
     private func bruteErode(_ a: Set<SIMD3<Int>>, _ r: Double, _ g: GridGeometry) -> Set<SIMD3<Int>> {
-        let limit = r * r * (1 + Morphology.tolerance)
+        let limit = r * r * (1 + LabelMorphology.tolerance)
         let all = lattice(g)
         let background = all.filter { !a.contains($0.0) }.map(\.1)
         var out = Set<SIMD3<Int>>()
@@ -62,20 +62,20 @@ final class MorphologyTests: XCTestCase {
             let a = blobs(seed, n: n)
             let mask = makeMask(n) { a.contains($0) }
             let sp = g.paddedSpacing
-            let d = voxels(of: try Morphology.dilate(mask, radius: r, spacing: sp, shape: n))
-            let e = voxels(of: try Morphology.erode(mask, radius: r, spacing: sp, shape: n))
+            let d = voxels(of: try LabelMorphology.dilate(mask, radius: r, spacing: sp, shape: n))
+            let e = voxels(of: try LabelMorphology.erode(mask, radius: r, spacing: sp, shape: n))
             let bd = bruteDilate(a, r, g), be = bruteErode(a, r, g)
             XCTAssertEqual(d, bd, "dilate seed \(seed) r \(r)")
             XCTAssertEqual(e, be, "erode seed \(seed) r \(r)")
-            XCTAssertEqual(voxels(of: try Morphology.open(mask, radius: r, spacing: sp, shape: n)), bruteDilate(be, r, g), "open \(seed)")
-            XCTAssertEqual(voxels(of: try Morphology.close(mask, radius: r, spacing: sp, shape: n)), bruteErode(bd, r, g), "close \(seed)")
+            XCTAssertEqual(voxels(of: try LabelMorphology.open(mask, radius: r, spacing: sp, shape: n)), bruteDilate(be, r, g), "open \(seed)")
+            XCTAssertEqual(voxels(of: try LabelMorphology.close(mask, radius: r, spacing: sp, shape: n)), bruteErode(bd, r, g), "close \(seed)")
         }
     }
 
     func testModelEditsAndAnisotropicRadius() throws {
         let m = try makeModel(shape: [9, 21, 21], spacing: [3, 1, 1], classes: [(1, 0), (2, 0)], layerCount: 1)
         m.apply(try m.makeEdit(.paint(1), over: VoxelRegion(sortedSpans: [.init(k0: 4, k1: 10, start: 10, end: 11)])))
-        let d = try Morphology.dilate(m, classID: 1, radius: 3.5)
+        let d = try LabelMorphology.dilate(m, classID: 1, radius: 3.5)
         m.apply(d)
         let got = voxels(of: 1, in: m)
         // 3.5 mm reaches one slice across axis 0 (3 mm) but 3 voxels in-plane.
@@ -87,11 +87,11 @@ final class MorphologyTests: XCTestCase {
         m.revert(d)
         XCTAssertEqual(voxels(of: 1, in: m).count, 1)
         // In-plane only.
-        m.apply(try Morphology.dilate(m, classID: 1, radius: 3.5, sliceAxis: 0))
+        m.apply(try LabelMorphology.dilate(m, classID: 1, radius: 3.5, sliceAxis: 0))
         XCTAssertEqual(Set(voxels(of: 1, in: m).map(\.x)), [4])
         // Erosion of that disc by 1 mm removes its rim.
         let before = voxels(of: 1, in: m)
-        m.apply(try Morphology.erode(m, classID: 1, radius: 1, sliceAxis: 0))
+        m.apply(try LabelMorphology.erode(m, classID: 1, radius: 1, sliceAxis: 0))
         let after = voxels(of: 1, in: m)
         XCTAssertTrue(after.isSubset(of: before))
         XCTAssertEqual(after, before.filter { k in
@@ -104,7 +104,7 @@ final class MorphologyTests: XCTestCase {
         fillRaw(m, layer: 0, value: 1) { $0.z == 2 }
         fillRaw(m, layer: 0, value: 2) { $0.z == 3 }
         m.apply(try m.updateClassEdit(2) { $0.isLocked = true })
-        m.apply(try Morphology.dilate(m, classID: 1, radius: 2))
+        m.apply(try LabelMorphology.dilate(m, classID: 1, radius: 2))
         XCTAssertEqual(voxels(of: 1, in: m).map(\.z).sorted(), [0, 1, 2, 4])
         XCTAssertEqual(voxels(of: 2, in: m).map(\.z), [3])
     }
@@ -114,20 +114,20 @@ final class MorphologyTests: XCTestCase {
         let c = SIMD3(10, 10, 10)
         let r2 = { (k: SIMD3<Int>) in simd_length_squared(SIMD3<Double>(k &- c)) }
         fillRaw(m, layer: 0, value: 1) { r2($0) >= 16 && r2($0) < 49 } // a hollow ball
-        m.apply(try Morphology.fillHoles(m, classID: 1))
+        m.apply(try LabelMorphology.fillHoles(m, classID: 1))
         XCTAssertEqual(voxels(of: 1, in: m), allVoxels(m.shape) { r2($0) < 49 })
 
         // A tube along axis 0, open at both ends: no 3-D hole, but a hole in every slice.
         let t = try makeModel(shape: [12, 20, 20], classes: [(1, 0)], layerCount: 1, inAnnotation: true)
         let rr = { (k: SIMD3<Int>) in Double((k.y - 10) * (k.y - 10) + (k.z - 10) * (k.z - 10)) }
         fillRaw(t, layer: 0, value: 1) { $0.x >= 2 && $0.x < 10 && rr($0) >= 9 && rr($0) < 25 }
-        XCTAssertTrue(try Morphology.fillHoles(t, classID: 1).isEmpty)
-        t.apply(try Morphology.fillHoles(t, classID: 1, scope: .slices(axis: 0)))
+        XCTAssertTrue(try LabelMorphology.fillHoles(t, classID: 1).isEmpty)
+        t.apply(try LabelMorphology.fillHoles(t, classID: 1, scope: .slices(axis: 0)))
         XCTAssertEqual(voxels(of: 1, in: t), allVoxels(t.shape) { $0.x >= 2 && $0.x < 10 && rr($0) < 25 })
         // Seen across axis 1, the tube's slices have no holes.
         let t2 = try makeModel(shape: [12, 20, 20], classes: [(1, 0)], layerCount: 1, inAnnotation: true)
         fillRaw(t2, layer: 0, value: 1) { $0.x >= 2 && $0.x < 10 && rr($0) >= 9 && rr($0) < 25 }
-        XCTAssertTrue(try Morphology.fillHoles(t2, classID: 1, scope: .slices(axis: 1)).isEmpty)
+        XCTAssertTrue(try LabelMorphology.fillHoles(t2, classID: 1, scope: .slices(axis: 1)).isEmpty)
     }
 
     func testCavityOpenToTheGridBorderIsNotAHole() throws {
@@ -138,9 +138,9 @@ final class MorphologyTests: XCTestCase {
             let inside = (2...7).contains(k.y) && (2...7).contains(k.z)
             return inside && (wall || k.x == 5)
         }
-        XCTAssertTrue(try Morphology.fillHoles(m, classID: 1).isEmpty)
+        XCTAssertTrue(try LabelMorphology.fillHoles(m, classID: 1).isEmpty)
         // Each slice 0…4 has a hole (the cup's inside).
-        let e = try Morphology.fillHoles(m, classID: 1, scope: .slices(axis: 0))
+        let e = try LabelMorphology.fillHoles(m, classID: 1, scope: .slices(axis: 0))
         XCTAssertEqual(e.voxelCount, 5 * 16)
     }
 
@@ -149,12 +149,12 @@ final class MorphologyTests: XCTestCase {
         fillRaw(m, layer: 0, value: 1) { $0.x == 1 && (2..<7).contains($0.y) && (2..<8).contains($0.z) } // 30
         fillRaw(m, layer: 0, value: 1) { $0.x == 2 && (12..<14).contains($0.y) && (12..<17).contains($0.z) } // 10
         fillRaw(m, layer: 0, value: 1) { $0.x == 0 && $0.y == 18 && $0.z == 18 } // 1
-        let keep = try Morphology.keepLargestComponent(m, classID: 1)
+        let keep = try LabelMorphology.keepLargestComponent(m, classID: 1)
         XCTAssertEqual(keep.voxelCount, 11)
-        let small = try Morphology.removeSmallComponents(m, classID: 1, minimumVoxels: 10)
+        let small = try LabelMorphology.removeSmallComponents(m, classID: 1, minimumVoxels: 10)
         XCTAssertEqual(small.voxelCount, 1)
         // 25 mm³ = 12.5 voxels of 2 mm³: removes the 10- and 1-voxel parts.
-        let byVolume = try Morphology.removeSmallComponents(m, classID: 1, minimumVolume: 25)
+        let byVolume = try LabelMorphology.removeSmallComponents(m, classID: 1, minimumVolume: 25)
         XCTAssertEqual(byVolume.voxelCount, 11)
         m.apply(keep)
         XCTAssertEqual(voxels(of: 1, in: m).count, 30)
@@ -164,7 +164,7 @@ final class MorphologyTests: XCTestCase {
         let m = try makeModel(shape: [12, 12, 12], classes: [(1, 0)], layerCount: 1, inAnnotation: true)
         fillRaw(m, layer: 0, value: 1) { all($0 .>= 2) && all($0 .< 10) && $0 != SIMD3(5, 5, 5) }
         fillRaw(m, layer: 0, value: 1) { $0 == SIMD3(0, 0, 11) }
-        m.apply(try Morphology.smooth(m, classID: 1, radius: 1))
+        m.apply(try LabelMorphology.smooth(m, classID: 1, radius: 1))
         XCTAssertTrue(m.contains(1, at: SIMD3(5, 5, 5)), "pinhole filled")
         XCTAssertFalse(m.contains(1, at: SIMD3(0, 0, 11)), "speck removed")
         XCTAssertFalse(m.contains(1, at: SIMD3(2, 2, 2)), "corner rounded")
@@ -185,7 +185,7 @@ final class ProgressTests: XCTestCase {
         fillRaw(m, layer: 0, value: 1) { simd_length_squared(SIMD3<Double>($0 &- SIMD3(32, 32, 32))) < 400 }
         let recorder = Recorder()
         let control = OperationControl { recorder.add($0) }
-        _ = try Morphology.dilate(m, classID: 1, radius: 2, control: control)
+        _ = try LabelMorphology.dilate(m, classID: 1, radius: 2, control: control)
         let v = recorder.values
         XCTAssertFalse(v.isEmpty)
         XCTAssertEqual(v.last, 1)
@@ -198,7 +198,7 @@ final class ProgressTests: XCTestCase {
         fillRaw(m, layer: 0, value: 1) { $0.x < 16 }
         let control = OperationControl()
         control.cancel()
-        XCTAssertThrowsError(try Morphology.dilate(m, classID: 1, radius: 3, control: control)) {
+        XCTAssertThrowsError(try LabelMorphology.dilate(m, classID: 1, radius: 3, control: control)) {
             XCTAssertEqual($0 as? EditingError, .cancelled)
         }
         let image = makeImage(Int16.self, geometry: m.geometry) { Int16($0.x) }

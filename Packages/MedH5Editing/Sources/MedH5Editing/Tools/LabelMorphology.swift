@@ -22,7 +22,7 @@ import MedH5Core
 ///
 /// With `sliceAxis`, the structuring element is a disc in the slices across
 /// that padded axis: each slice is processed on its own.
-public enum Morphology {
+public enum LabelMorphology {
     static let tolerance = 1e-6
 
     // MARK: Masks

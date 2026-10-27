@@ -36,7 +36,7 @@ import MedH5Core
 /// ```swift
 /// let snapshot = model.copy()
 /// let edit = try await Task.detached {
-///     try Morphology.dilate(snapshot, classID: 3, radius: 2.0)
+///     try LabelMorphology.dilate(snapshot, classID: 3, radius: 2.0)
 /// }.value
 /// if model.revision == snapshot.revision { model.apply(edit); history.record(edit, name: "Dilate") }
 /// ```
