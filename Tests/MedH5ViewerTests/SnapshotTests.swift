@@ -23,6 +23,43 @@ final class SnapshotTests: XCTestCase {
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo"]), "needs --out")
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--layout", "5x5"]))
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--out", "o"]), "needs a source")
+        let e = try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--inspector", "segment-editor", "--tool",
+                                            "window-level", "--edit", "all"])
+        XCTAssertEqual(e.inspector, .segmentEditor)
+        XCTAssertEqual(e.tool, .windowLevel)
+        XCTAssertEqual(e.editScript, "all")
+        XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--inspector", "annotations"]).inspector, .annotations)
+        XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--tool", "polyline"]).tool, .polyline)
+        XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--tool", "lasso"]))
+        XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--edit", "everything"]))
+    }
+
+    /// The snapshot mode's scripted edits drive every editing tool.
+    func testSnapshotModeWithScriptedEdits() throws {
+        guard RenderContext.shared != nil else { throw XCTSkip("no Metal device") }
+        let products = Bundle(for: SnapshotTests.self).bundleURL.deletingLastPathComponent()
+        let executable = products.appendingPathComponent("medh5-viewer")
+        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
+            throw XCTSkip("the medh5-viewer executable is not built next to the tests")
+        }
+        let out = TemporaryDirectory("snapshot-edit")
+        let process = Process()
+        process.executableURL = executable
+        process.arguments = ["--snapshot", "--demo", "--demo-size", "32", "--out", out.url.path, "--layout", "single",
+                             "--inspector", "annotations", "--edit", "all", "--size", "1000x700", "--no-verify", "--timeout", "90"]
+        let stdout = Pipe(), stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+        try process.run()
+        process.waitUntilExit()
+        let printed = String(decoding: stdout.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        let errors = String(decoding: stderr.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        if process.terminationStatus != 0, errors.contains("no window server") || errors.contains("WindowServer") {
+            throw XCTSkip("no window server: \(errors)")
+        }
+        XCTAssertEqual(process.terminationStatus, 0, errors)
+        XCTAssertEqual(printed.split(separator: "\n").map { URL(fileURLWithPath: String($0)).lastPathComponent },
+                       ["window.png", "view-1.png"])
     }
 
     /// Runs the built executable in snapshot mode on a small demo.

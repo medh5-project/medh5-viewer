@@ -28,7 +28,7 @@ final class MenuTests: XCTestCase {
             XCTAssertTrue(i.keyEquivalentModifierMask.isEmpty)
             XCTAssertEqual(i.action, #selector(DocumentWindowController.selectLayout(_:)))
         }
-        // The viewing tools have actions; the editing tools are present.
+        // Every tool has its action and key.
         for tool in ViewerTool.allCases {
             let i = try XCTUnwrap(item("Tools", tool.title), tool.title)
             XCTAssertEqual(i.action, #selector(DocumentWindowController.selectTool(_:)))
@@ -37,10 +37,31 @@ final class MenuTests: XCTestCase {
         XCTAssertEqual(item("Tools", "Navigate")?.keyEquivalent, "v")
         XCTAssertEqual(item("Tools", "Box")?.keyEquivalentModifierMask, [.shift])
         // Phase B items: present, no action.
-        for path in [["File", "Import", "NIfTI Image…"], ["File", "Export", "NIfTI…"], ["Segmentation", "New Segmentation…"],
-                     ["Segmentation", "Operations", "Fill Holes"], ["Tools", "Validate…"], ["Tools", "Recompress…"]] {
+        for path in [["File", "Import", "NIfTI Image…"], ["File", "Export", "NIfTI…"],
+                     ["Tools", "Validate…"], ["Tools", "Recompress…"]] {
             let i = try XCTUnwrap(find(path), path.joined(separator: " ▸ "))
             XCTAssertNil(i.action, path.joined(separator: " ▸ "))
+        }
+        // The editing tools' items (phase B1).
+        XCTAssertEqual(item("Segmentation", "New Segmentation…")?.action, #selector(DocumentWindowController.newSegmentation(_:)))
+        XCTAssertEqual(item("Segmentation", "Add Class…")?.action, #selector(DocumentWindowController.addSegmentClass(_:)))
+        XCTAssertEqual(item("Segmentation", "Tools", "Brush")?.representedObject as? String, ViewerTool.brush.rawValue)
+        XCTAssertEqual(item("Segmentation", "Tools", "Larger Brush")?.keyEquivalent, "]")
+        XCTAssertEqual(item("Segmentation", "Tools", "Smaller Brush")?.keyEquivalent, "[")
+        XCTAssertTrue(item("Segmentation", "Tools", "Smaller Brush")?.keyEquivalentModifierMask.isEmpty ?? false)
+        for operation in SegmentOperationKind.allCases {
+            let i = try XCTUnwrap(item("Segmentation", "Operations", operation.menuTitle), operation.menuTitle)
+            XCTAssertEqual(i.action, #selector(DocumentWindowController.segmentOperation(_:)))
+        }
+        XCTAssertNotNil(item("Segmentation", "Operations", "Fill Holes"))
+        XCTAssertNotNil(item("Segmentation", "Operations", "Threshold…"))
+        XCTAssertEqual(item("File", "Export", "Measurements (CSV)…")?.action, #selector(DocumentWindowController.exportMeasurements(_:)))
+        for (tool, key, shift) in [(ViewerTool.ruler, "m", false), (.angle, "a", false), (.roi, "o", false), (.brush, "b", false),
+                                   (.eraser, "e", false), (.fill, "f", false), (.box, "b", true), (.point, "p", true),
+                                   (.polyline, "l", true), (.contour, "c", true)] {
+            let i = try XCTUnwrap(item("Tools", tool.title))
+            XCTAssertEqual(i.keyEquivalent, key, tool.title)
+            XCTAssertEqual(i.keyEquivalentModifierMask, shift ? [.shift] : [], tool.title)
         }
         XCTAssertNotNil(item("File", "Export", "Screenshot…")?.action)
         XCTAssertNotNil(item("Help", "Open Demo Sample")?.action)
