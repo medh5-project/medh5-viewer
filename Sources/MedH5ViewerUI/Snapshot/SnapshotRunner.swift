@@ -63,6 +63,9 @@ final class SnapshotRunner {
         window.setFrameOrigin(NSPoint(x: 40, y: 40))
         if let appearance = options.appearance { window.appearance = NSAppearance(named: appearance) }
         window.alphaValue = 0
+        // Invisible, but over the screen: input meant for other apps
+        // (scrolling, clicks) must not move its slices.
+        window.ignoresMouseEvents = true
         window.orderFrontRegardless()
 
         if let collection = doc as? MedH5CollectionDocument {
@@ -136,7 +139,8 @@ final class SnapshotRunner {
             try await Task.sleep(nanoseconds: 50_000_000)
             if Date().timeIntervalSince(started) > options.timeout {
                 let pending = workspace?.store.pendingKeys.map(\.description).joined(separator: ", ") ?? ""
-                throw SnapshotError("timed out after \(Int(options.timeout)) s waiting for: \(pending.isEmpty ? "the window" : pending)")
+                let why = pending.isEmpty ? (workspace.map(unreadiness) ?? "the window") : pending
+                throw SnapshotError("timed out after \(Int(options.timeout)) s waiting for: \(why)")
             }
             window.contentView?.layoutSubtreeIfNeeded()
             if let workspace, !isReady(workspace) {
@@ -168,6 +172,33 @@ final class SnapshotRunner {
             if case .loaded? = w.attributeState(path) {} else if case .failed? = w.attributeState(path) {} else { return false }
         }
         return true
+    }
+
+    /// What `isReady` still waits for, in words (for a timeout).
+    private func unreadiness(_ w: Workspace) -> String {
+        var parts: [String] = []
+        if w.verification == .running { parts.append("the integrity check") }
+        for key in w.neededResources() where w.store.failure(key) == nil && !w.store.isReady(key) {
+            parts.append("\(key) (\(w.store.isLoading(key) ? "loading" : "not requested"))")
+        }
+        for id in w.viewer.visibleViewports {
+            let presentation = id == .volume ? w.viewports.volume?.presentation : w.viewports.slices[id]?.presentation
+            let container = id == .volume ? w.viewports.volume?.container : w.viewports.slices[id]?.container
+            if container == nil { parts.append("the \(id) view (not made)") } else if container?.window == nil {
+                parts.append("the \(id) view (not in the window)")
+            }
+            if let loading = presentation?.loading, !loading.isEmpty {
+                parts.append("the \(id) view (\(loading.map(\.title).joined(separator: ", ")))")
+            }
+        }
+        if w.layout3DNeedsSurfaces { parts.append("the 3-D view's surfaces") }
+        if w.showsInspector, w.inspectorTab == .info, let sel = w.selection, let path = w.objectPath(forNode: sel) {
+            switch w.attributeState(path) {
+            case .loaded?, .failed?: break
+            default: parts.append("the attributes of \(sel)")
+            }
+        }
+        return parts.isEmpty ? "the window" : parts.joined(separator: "; ")
     }
 
     private func write(window: NSWindow, workspace: Workspace?) throws {

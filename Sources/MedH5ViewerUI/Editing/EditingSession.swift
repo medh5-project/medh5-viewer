@@ -147,6 +147,9 @@ final class EditingSession {
         for name in [Notification.Name.NSUndoManagerDidUndoChange, .NSUndoManagerDidRedoChange,
                      .NSUndoManagerDidCloseUndoGroup] {
             observers.append(center.addObserver(forName: name, object: nil, queue: nil) { [weak self] note in
+                // The document's undo manager works on the main thread; an
+                // undo manager elsewhere is none of ours.
+                guard Thread.isMainThread else { return }
                 let manager = note.object as AnyObject?
                 MainActor.assumeIsolated {
                     guard let self, let manager, manager === self.workspace.document?.undoManager else { return }
