@@ -267,6 +267,13 @@ enum PendingChangeList {
         }
     }
 
+    /// A workspace's rows, against the saved file (its summary also lists
+    /// what the editing tools made and has not been saved).
+    @MainActor
+    static func items(of workspace: Workspace) -> [Item] {
+        items(workspace.pendingEdits, summary: workspace.file.summary)
+    }
+
     static func items(_ e: PendingEdits, summary: SampleSummary) -> [Item] {
         var out: [Item] = []
         if e.document != nil {
@@ -324,7 +331,7 @@ struct PendingChangesSection: View {
     let workspace: Workspace
 
     var body: some View {
-        let items = PendingChangeList.items(workspace.pendingEdits, summary: workspace.summary)
+        let items = PendingChangeList.items(of: workspace)
         if !items.isEmpty {
             Section("Unsaved Changes") {
                 ForEach(items) { item in

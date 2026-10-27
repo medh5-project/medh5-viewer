@@ -163,7 +163,9 @@ extension MedH5Document {
         let file = workspace.file
         Task { @MainActor in
             let clinical = group == .transform ? nil : (try? await blocking { try file.clinicalRecords() }) ?? nil
-            let summary = workspace.summary
+            // The saved file's: the workspace's summary also lists what the
+            // editing tools made and has not been saved (pending additions).
+            let summary = workspace.file.summary
             let edits = workspace.pendingEdits
             let plan: RemovalPlan
             switch group {

@@ -189,6 +189,16 @@ public final class MedH5Document: NSDocument {
     @MainActor
     var pendingEdits: PendingEdits { edits }
 
+    /// Sets the pending edits within an undo step the editing tools register
+    /// themselves (one step restores voxels and edits together). Refused in
+    /// a read-only document, like `apply`.
+    @MainActor
+    func setPendingEdits(_ new: PendingEdits) {
+        guard !isReadOnly else { return }
+        edits = new
+        markPinnedSegmentations()
+    }
+
     // MARK: Saving
 
     override public func save(to url: URL, ofType typeName: String, for saveOperation: NSDocument.SaveOperationType,

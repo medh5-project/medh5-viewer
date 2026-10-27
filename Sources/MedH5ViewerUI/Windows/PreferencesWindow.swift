@@ -4,8 +4,8 @@ import MedH5Kit
 import MedH5Render
 
 /// Settings: General (layout, planes, convention), Rendering (interpolation,
-/// 3-D quality, memory budget), Performance (engine threads), as toolbar
-/// tabs. Editing settings come with the editing tools.
+/// 3-D quality, memory budget), Editing (brush radius, undo memory),
+/// Performance (engine threads), as toolbar tabs.
 @MainActor
 final class PreferencesWindowController: NSWindowController {
     static let shared = PreferencesWindowController()
@@ -24,6 +24,7 @@ final class PreferencesWindowController: NSWindowController {
         }
         tabs.addTabViewItem(pane("General", "gearshape", GeneralPreferences()))
         tabs.addTabViewItem(pane("Rendering", "cube.transparent", RenderingPreferences()))
+        tabs.addTabViewItem(pane("Editing", "paintbrush.pointed", EditingPreferences()))
         tabs.addTabViewItem(pane("Performance", "speedometer", PerformancePreferences()))
         let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]
@@ -110,6 +111,45 @@ struct RenderingPreferences: View {
                 }
             } footer: {
                 Text("Of \(Int(physicalGB.rounded())) GB. Beyond the budget, volumes no view shows are released, least recently used first, and read again when needed.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .formStyle(.grouped)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+struct EditingPreferences: View {
+    @AppStorage(Preferences.Key.defaultBrushRadius) private var radius = 5.0
+    @AppStorage(Preferences.Key.undoMemoryMB) private var undoMB = 512
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("Default brush radius") {
+                    HStack {
+                        Slider(value: $radius, in: 0.5...50)
+                            .frame(width: 200)
+                        Text("\(Format.number(radius, digits: 1)) mm").monospacedDigit().frame(width: 60, alignment: .trailing)
+                    }
+                }
+            } footer: {
+                Text("The radius the brush and eraser start with in a new window; [ and ] change it while you paint.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Section {
+                Picker("Undo memory", selection: $undoMB) {
+                    Text("128 MB").tag(128)
+                    Text("256 MB").tag(256)
+                    Text("512 MB").tag(512)
+                    Text("1 GB").tag(1024)
+                    Text("2 GB").tag(2048)
+                    Text("4 GB").tag(4096)
+                }
+            } footer: {
+                Text("What the undo steps of a window’s segmentation edits may hold. Beyond it the oldest steps can no longer be undone; the newest always can.")
                     .font(.callout).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

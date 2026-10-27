@@ -134,6 +134,8 @@ final class SliceViewportController: NSObject, SliceViewInteraction {
 
     func sliceView(_ view: SliceView, handle e: SliceViewEvent) -> Bool {
         let viewer = workspace.viewer
+        // The editing and measuring tools (`SliceTool`) see events first.
+        if workspace.editing.handle(ToolEvent(e), viewport: id, camera: view.scene.camera) { return true }
         switch e.kind {
         case .mouseDown, .rightMouseDown, .otherMouseDown:
             if viewer.activeViewport != id { viewer.activeViewport = id }

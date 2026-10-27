@@ -42,6 +42,21 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         workspace.shutDown()
     }
 
+    /// The window's text fields (the inspector's numbers and names, the
+    /// sidebar's search) edit with a field editor of their own, as the
+    /// panels' do (`PanelFieldEditor`): typing is undone on its own, so it
+    /// never marks the document edited; outside a field, Edit ▸ Undo takes
+    /// back the document's edits.
+    private let fieldEditor: PanelFieldEditor = {
+        let editor = PanelFieldEditor()
+        editor.isFieldEditor = true
+        return editor
+    }()
+
+    func windowWillReturnFieldEditor(_ sender: NSWindow, to client: Any?) -> Any? {
+        client is NSTextField ? fieldEditor : nil
+    }
+
     private var viewer: ViewerModel { workspace.viewer }
 
     // MARK: View menu
@@ -129,7 +144,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
 
     @objc func selectTool(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String, let tool = ViewerTool(rawValue: raw), tool.isAvailable else { return }
-        viewer.tool = tool
+        workspace.editing.select(tool)
     }
 
     // MARK: File menu
@@ -174,6 +189,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         if MenuValidation.isTypingInTextField(window), item.keyEquivalentModifierMask.isEmpty, !item.keyEquivalent.isEmpty {
             return false
         }
+        if let enabled = validateEditingMenuItem(item) { return enabled }
         switch action {
         case #selector(selectLayout(_:)):
             item.state = (item.representedObject as? String) == viewer.layout.rawValue ? .on : .off

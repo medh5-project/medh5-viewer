@@ -45,6 +45,11 @@ public struct SnapshotOptions: Equatable {
     public var auxiliaryWindow: String?
     /// The clinical window's cutoff, in hours of the subject clock.
     public var clinicalCutoffHours: Double?
+    /// The tool selected (after a scripted edit).
+    public var tool: ViewerTool?
+    /// A scripted edit made before the capture, to look at the editing
+    /// tools (QA, tests): `segment`, `annotate`, `measure` or `all`.
+    public var editScript: String?
 
     public init(source: Source, outDirectory: URL) {
         self.source = source
@@ -63,7 +68,8 @@ public struct SnapshotOptions: Equatable {
       --size WxH                           window content size in points (1600x1000)
       --appearance dark|light              the window chrome's appearance
       --select <item>                      select a sidebar item (id, object or title)
-      --inspector layers|info|…            the inspector tab
+      --inspector layers|segment-editor|annotations|measurements|info
+                                           the inspector tab
       --overlays all|<id,id,…>             add annotations as overlays
       --plane axial|coronal|sagittal       the plane of the single view / compare
       --active <view>                      the active view: axial, coronal, sagittal, 3d, left, right
@@ -72,13 +78,19 @@ public struct SnapshotOptions: Equatable {
       --no-sidebar, --no-inspector         hide a panel
       --no-verify                          skip the integrity check
       --timeout <seconds>                  give up after this long (120)
-      --window welcome|settings            capture that window instead of a document
+      --window welcome|settings[-editing…] capture that window instead of a document (a Settings
+                                           pane: settings-general, -rendering, -editing, -performance)
       --window validate|verify|document|label-set|clinical|help|shortcuts|acknowledgements|import-nifti
                                            a panel of the document, or an app window; --select picks a
                                            page, class, event or filter in it
       --cutoff <hours>                     the clinical window's cutoff on the subject clock
       --3d-mode dvr|mip|minip|average|isosurface
       --3d-surfaces raycast|meshes         how segmentations show in 3-D
+      --tool <name>                        the tool: navigate, window-level, pan, zoom, ruler, angle,
+                                           roi, brush, eraser, fill, box, point, polyline, contour
+      --edit segment|annotate|measure|all  a scripted edit before the capture (QA): a new
+                                           segmentation painted, annotation items drawn,
+                                           measurements made, gestures left in progress
     """
 
     struct ParseError: Error, CustomStringConvertible {
@@ -161,7 +173,9 @@ public struct SnapshotOptions: Equatable {
                 o.timeout = t
             case "--window":
                 let v = try value(a).lowercased()
-                guard ["welcome", "settings", "preferences"].contains(v) || AuxiliarySnapshot.windows.contains(v) else {
+                let panes = ["settings-general", "settings-rendering", "settings-editing", "settings-performance"]
+                guard ["welcome", "settings", "preferences"].contains(v) || panes.contains(v)
+                        || AuxiliarySnapshot.windows.contains(v) else {
                     throw ParseError(description: "unknown window \(v)")
                 }
                 o.auxiliaryWindow = v == "preferences" ? "settings" : v
@@ -177,6 +191,14 @@ public struct SnapshotOptions: Equatable {
                 let v = try value(a)
                 guard let h = Double(v.lowercased().replacingOccurrences(of: "h", with: "")) else { throw ParseError(description: "bad cutoff \(v)") }
                 o.clinicalCutoffHours = h
+            case "--tool":
+                let v = try value(a)
+                guard let t = ViewerTool(argument: v) else { throw ParseError(description: "unknown tool \(v)") }
+                o.tool = t
+            case "--edit":
+                let v = try value(a).lowercased()
+                guard EditScript.names.contains(v) else { throw ParseError(description: "unknown edit script \(v)") }
+                o.editScript = v
             case "--no-verify": o.verify = false
             case "--no-sidebar": o.hideSidebar = true
             case "--no-inspector": o.hideInspector = true

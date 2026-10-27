@@ -146,6 +146,15 @@ struct SliceSceneBuilder {
 
             case .geometric:
                 guard let info = summary.annotation(layer.id) else { continue }
+                if workspace.editing.hasPendingDraft(layer.id) {
+                    // Unsaved changes: drawn from the pending edit.
+                    let built = ToolOverlayBuilder(workspace: workspace, viewport: viewport, camera: cam, reference: reference,
+                                                   sliceStep: sliceStep).pendingDraft(layer, info: info)
+                    overlays += built.overlays
+                    labels += built.labels
+                    notes += built.notes
+                    continue
+                }
                 guard let g = store.ready(.geometry(layer.id), as: GeometryResource.self) else {
                     noteLoading(.geometry(layer.id), "Reading \(layer.id)")
                     continue
@@ -177,6 +186,11 @@ struct SliceSceneBuilder {
             }
         }
 
+        // Measurements, the brush cursor, gestures in progress, selections.
+        let tools = ToolOverlayBuilder(workspace: workspace, viewport: viewport, camera: cam, reference: reference,
+                                       sliceStep: sliceStep).build()
+        overlays += tools.overlays
+        labels += tools.labels
         if viewer.showsCrosshair {
             overlays.append(.crosshair(at: cursor, camera: cam, color: SIMD4(0.35, 0.75, 1, 0.75), lineWidth: 1, gap: 10))
         }

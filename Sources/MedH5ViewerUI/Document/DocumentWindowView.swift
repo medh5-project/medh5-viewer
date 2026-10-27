@@ -110,6 +110,9 @@ struct DocumentToolbar: ToolbarContent {
             .labelStyle(.iconOnly)
             .help("Tool: Navigate (V), Window/Level (W), Pan (H), Zoom (Z)")
         }
+        ToolbarItem(placement: .navigation) {
+            EditingToolPicker(workspace: workspace)
+        }
         ToolbarItem(placement: .principal) {
             TimepointMenu(workspace: workspace)
         }
