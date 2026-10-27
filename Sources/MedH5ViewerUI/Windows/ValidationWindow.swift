@@ -223,10 +223,10 @@ struct ValidationView: View {
                 Text(headline).font(.system(size: 17, weight: .semibold))
                 Text(subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     .help(model.workspace.savedURL.path)
-                if let report = model.report, !report.profiles.isEmpty {
-                    Text("Profiles: " + report.profiles.joined(separator: ", "))
-                        .font(.caption).foregroundStyle(.tertiary).lineLimit(1)
-                }
+                Text(([model.workspace.savedURL.lastPathComponent]
+                      + (model.report.map { $0.profiles.isEmpty ? [] : ["profiles " + $0.profiles.joined(separator: ", ")] } ?? []))
+                    .joined(separator: " · "))
+                    .font(.caption).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.middle)
             }
             Spacer(minLength: 12)
             Picker("Level", selection: Binding(get: { model.level }, set: { model.setLevel($0) })) {
@@ -280,7 +280,6 @@ struct ValidationView: View {
     private var subtitle: String {
         var parts = ["\(model.level.capitalizedFirst) level"]
         if let at = model.validatedAt { parts.append("validated \(at.formatted(date: .omitted, time: .shortened))") }
-        parts.append(model.workspace.savedURL.lastPathComponent)
         return parts.joined(separator: " · ")
     }
 
