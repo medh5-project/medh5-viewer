@@ -50,9 +50,6 @@ swift test --package-path Packages/MedH5Kit       # needs the bridge
 the synced folder, as `scripts/test.sh` does, or code signing of the test
 bundle fails.)
 
-```bash
-```
-
 ## Package
 
 ```bash
