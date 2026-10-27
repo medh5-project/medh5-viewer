@@ -32,6 +32,8 @@ final class SnapshotTests: XCTestCase {
         XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--tool", "polyline"]).tool, .polyline)
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--tool", "lasso"]))
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--edit", "everything"]))
+        XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--window", "settings-editing", "--out", "o"]).auxiliaryWindow,
+                       "settings-editing")
     }
 
     /// The snapshot mode's scripted edits drive every editing tool.

@@ -76,7 +76,8 @@ public struct SnapshotOptions: Equatable {
       --no-sidebar, --no-inspector         hide a panel
       --no-verify                          skip the integrity check
       --timeout <seconds>                  give up after this long (120)
-      --window welcome|settings            capture that window instead of a document
+      --window welcome|settings[-editing…] capture that window instead of a document (a Settings
+                                           pane: settings-general, -rendering, -editing, -performance)
       --3d-mode dvr|mip|minip|average|isosurface
       --3d-surfaces raycast|meshes         how segmentations show in 3-D
       --tool <name>                        the tool: navigate, window-level, pan, zoom, ruler, angle,
@@ -166,7 +167,10 @@ public struct SnapshotOptions: Equatable {
                 o.timeout = t
             case "--window":
                 let v = try value(a).lowercased()
-                guard ["welcome", "settings", "preferences"].contains(v) else { throw ParseError(description: "unknown window \(v)") }
+                let panes = ["settings-general", "settings-rendering", "settings-editing", "settings-performance"]
+                guard ["welcome", "settings", "preferences"].contains(v) || panes.contains(v) else {
+                    throw ParseError(description: "unknown window \(v)")
+                }
                 o.auxiliaryWindow = v == "preferences" ? "settings" : v
             case "--3d-mode":
                 let v = try value(a).lowercased()

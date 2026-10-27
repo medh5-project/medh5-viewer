@@ -38,6 +38,10 @@ final class SnapshotRunner {
             case "welcome": window = WelcomeWindowController.shared.window
             default: window = PreferencesWindowController.shared.window
             }
+            if name.hasPrefix("settings-"), let tabs = window?.contentViewController as? NSTabViewController,
+               let i = tabs.tabViewItems.firstIndex(where: { $0.label.lowercased() == name.dropFirst("settings-".count) }) {
+                tabs.selectedTabViewItemIndex = i
+            }
             guard let window else { throw SnapshotError("no \(name) window") }
             if let appearance = options.appearance { window.appearance = NSAppearance(named: appearance) }
             window.alphaValue = 0

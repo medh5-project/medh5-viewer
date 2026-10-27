@@ -188,12 +188,22 @@ extension EditingSession {
     }
 
     /// The 3-D view's smoothed surfaces of a segmentation are made again
-    /// from the edited voxels (when the view uses them).
+    /// from the edited voxels (when the view uses them), once the edits
+    /// settle: extracting them is far slower than a stroke.
     func refreshSurfaces(_ id: String) {
         let key = ResourceKey.surfaces(id)
-        guard store.isReady(key) || store.isLoading(key) else { return }
-        store.evict(key)
-        if store.inUse.contains(key) { store.request(key) }
+        guard store.isReady(key) || store.isLoading(key) || surfaceRefreshes[id] != nil else { return }
+        surfaceRefreshes[id]?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.surfaceRefreshes[id] = nil
+                self.store.evict(key)
+                if self.store.inUse.contains(key) { self.store.request(key) }
+            }
+        }
+        surfaceRefreshes[id] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: work)
     }
 
     // MARK: New segmentation

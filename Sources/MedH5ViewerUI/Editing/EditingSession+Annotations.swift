@@ -502,7 +502,7 @@ extension EditingSession {
             s.annotations[i].annotatedClassIDs = model.annotatedClassIDs.map(Int.init)
         }
         for (id, edit) in edits.annotations.sorted(by: { $0.key < $1.key }) where !edits.removedAnnotations.contains(id) {
-            guard case .geometric(let kind, let options, _) = edit, let draft = try? AnnotationDraft(edit: edit) else { continue }
+            guard case .geometric(let kind, let options, _) = edit, let draft = draft(id) else { continue }
             var annotated: [Int] = []
             if case .classes(let ids)? = options.common.annotatedClasses { annotated = ids }
             if let i = s.annotations.firstIndex(where: { $0.id == id }) {

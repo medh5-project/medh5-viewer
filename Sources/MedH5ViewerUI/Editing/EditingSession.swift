@@ -137,6 +137,8 @@ final class EditingSession {
     @ObservationIgnored var classCounts: [String: [UInt16: Int]] = [:]
     /// The task of the operation running, for tests and the snapshot mode.
     @ObservationIgnored var currentTask: Task<Void, Never>?
+    /// Surface re-extractions waiting for the edits to settle.
+    @ObservationIgnored var surfaceRefreshes: [String: DispatchWorkItem] = [:]
 
     init(workspace: Workspace) {
         self.workspace = workspace

@@ -228,23 +228,26 @@ struct SegmentClassRow: View {
             .accessibilityLabel(visible ? "Hide \(c.name)" : "Show \(c.name)")
             RoundedRectangle(cornerRadius: 3).fill(c.color.withAlpha(255).color)
                 .frame(width: 12, height: 12)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(c.name).fontWeight(isActive ? .semibold : .regular).lineLimit(1)
-                Text("\(c.id) · \(Format.integer(voxels)) vx · \(Format.number(volume, digits: volume < 100 ? 1 : 0)) \(units)³")
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 6) {
+                    Text(c.name).fontWeight(isActive ? .semibold : .regular).lineLimit(1)
+                    Spacer(minLength: 4)
+                    Button { session.setLocked(c.id, !c.isLocked, in: segmentation) } label: {
+                        Image(systemName: c.isLocked ? "lock.fill" : "lock.open")
+                            .foregroundStyle(c.isLocked ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.tertiary))
+                    }
+                    .buttonStyle(.borderless)
+                    .help(c.isLocked ? "Locked: no tool changes its voxels. Click to unlock." : "Lock the class")
+                    .accessibilityLabel(c.isLocked ? "Unlock \(c.name)" : "Lock \(c.name)")
+                    coverageBadge
+                }
+                Text("id \(c.id) · \(Format.integer(voxels)) voxels · \(volumeText) \(units)³")
                     .font(.system(size: 10))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .textSelection(.enabled)
             }
-            Spacer(minLength: 4)
-            Button { session.setLocked(c.id, !c.isLocked, in: segmentation) } label: {
-                Image(systemName: c.isLocked ? "lock.fill" : "lock.open")
-                    .foregroundStyle(c.isLocked ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.tertiary))
-            }
-            .buttonStyle(.borderless)
-            .help(c.isLocked ? "Locked: no tool changes its voxels. Click to unlock." : "Lock the class")
-            .accessibilityLabel(c.isLocked ? "Unlock \(c.name)" : "Lock \(c.name)")
-            coverageBadge
         }
         .font(.system(size: 11.5))
         .padding(.horizontal, 6)
@@ -255,6 +258,10 @@ struct SegmentClassRow: View {
         .contextMenu { menu }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(c.name), \(voxels) voxels, \(isExamined ? "examined" : "can express only")\(isActive ? ", active" : "")")
+    }
+
+    private var volumeText: String {
+        volume < 100 ? Format.number(volume, digits: 1) : Format.integer(Int(volume.rounded()))
     }
 
     private var coverageBadge: some View {
