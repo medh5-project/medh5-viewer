@@ -41,6 +41,9 @@ jobs:
       - name: Build the bridge
         run: scripts/build-bridge.sh
 
+      - name: Third-party notices are current
+        run: python3 -I scripts/third_party_notices.py --check
+
       - name: Test everything
         run: scripts/test.sh
 

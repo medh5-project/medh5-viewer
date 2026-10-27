@@ -60,6 +60,8 @@ sed -e "s/__VERSION__/$VERSION/g" \
     "$ROOT/Resources/Info.plist" > "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
 cp "$ROOT/Resources/AppIcon.icns" "$ROOT/Resources/DocumentIcon.icns" "$APP/Contents/Resources/"
+cp "$ROOT/LICENSE" "$APP/Contents/Resources/LICENSE.txt"
+cp "$ROOT/THIRD_PARTY_NOTICES" "$APP/Contents/Resources/THIRD_PARTY_NOTICES.txt"
 if [[ -d "$BUILD_ROOT/help" ]]; then cp -R "$BUILD_ROOT/help" "$APP/Contents/Resources/Help"; fi
 # SwiftPM resource bundles, should any target ever declare resources.
 find "$BIN_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP/Contents/Resources/" \;
