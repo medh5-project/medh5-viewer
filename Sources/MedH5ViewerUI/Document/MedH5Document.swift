@@ -144,6 +144,7 @@ public final class MedH5Document: NSDocument {
            action == #selector(save(_:)) || action == #selector(saveAs(_:)) || action == #selector(revertToSaved(_:)) {
             return false
         }
+        if let answer = MainActor.assumeIsolated({ validateAuxiliaryItem(item) }) { return answer }
         return super.validateUserInterfaceItem(item)
     }
 
