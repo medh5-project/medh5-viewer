@@ -5,8 +5,14 @@ import Foundation
 /// Storage is page-aligned and a whole number of pages, so a Metal buffer can
 /// wrap it without a copy (`makeBuffer(bytesNoCopy:)`), and it is mapped
 /// anonymously, so a large volume costs no time to zero. A `VolumeData` made
-/// by `frame(_:)` is a view into its parent's storage and keeps the parent
-/// alive.
+/// by `frame(_:)` or `reshaped(_:)` is a view into its parent's storage and
+/// keeps the parent alive.
+///
+/// Guarantee: the page-rounded span of any volume — its first byte rounded
+/// down to a page boundary through its last byte rounded up — lies inside
+/// the mapping of the owning volume it views, because that mapping starts on
+/// a page boundary and is a whole number of pages. A renderer may therefore
+/// wrap a view's pages in a no-copy Metal buffer.
 ///
 /// The class is `@unchecked Sendable`: readers may share it across threads,
 /// and a writer (the segmentation editor) must serialise its own writes.
