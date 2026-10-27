@@ -32,6 +32,13 @@ final class SnapshotRunner {
 
     private func run() async throws {
         try FileManager.default.createDirectory(at: options.outDirectory, withIntermediateDirectories: true)
+        if let name = options.auxiliaryWindow, AuxiliarySnapshot.windows.contains(name) {
+            let doc = try await openDocument()
+            document = doc
+            try await AuxiliarySnapshot(options: options).run(name, document: doc)
+            finish(code: 0)
+            return
+        }
         if let name = options.auxiliaryWindow {
             let window: NSWindow?
             switch name {
