@@ -177,9 +177,12 @@ public struct PlaneAxes: Sendable, Hashable {
         let target = standard(plane, in: grid.coordinateSystem, convention: convention)
         let dirs = grid.axisDirections
         if grid.is2D {
-            // A 2-D grid has one plane: its own.
-            return PlaneAxes(right: snap(target.right, to: [dirs[1], dirs[2]]),
-                             down: snap(target.down, to: [dirs[1], dirs[2]]))
+            // A 2-D grid has one plane: its own. Screen-down takes the axis
+            // screen-right did not, so the two never coincide.
+            let inPlane = [dirs[1], dirs[2]]
+            let right = snap(target.right, to: inPlane)
+            let other = inPlane.filter { abs(simd_dot($0, right)) < 0.5 }
+            return PlaneAxes(right: right, down: snap(target.down, to: other.isEmpty ? inPlane : other))
         }
         let right = snap(target.right, to: dirs)
         let remaining = dirs.filter { abs(simd_dot($0, right)) < 0.5 }

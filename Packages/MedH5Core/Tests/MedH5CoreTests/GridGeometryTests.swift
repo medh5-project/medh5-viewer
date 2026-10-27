@@ -59,6 +59,10 @@ final class GridGeometryTests: XCTestCase {
         let g = GridGeometry(id: "g", shape: [4, 4, 4], spacing: [1, 1, 1])
         XCTAssertEqual(g.voxel(containingIndex: SIMD3(0.5, 1.49, -0.5)), SIMD3(1, 1, 0))
         XCTAssertNil(g.voxel(containingIndex: SIMD3(3.5, 0, 0)))
+        // A non-finite index (a degenerate plane) is no voxel, not a trap.
+        XCTAssertNil(g.voxel(containingIndex: SIMD3(.nan, 0, 0)))
+        XCTAssertNil(g.voxel(containingIndex: SIMD3(0, .infinity, 0)))
+        XCTAssertNil(g.voxel(containingWorld: SIMD3(0, 0, -.infinity)))
     }
 
     func testLeadingAxes() {
@@ -97,6 +101,20 @@ final class OrientationTests: XCTestCase {
         XCTAssertEqual(lps.label(forWorldDirection: SIMD3(0, -1, 0)), "A")
         XCTAssertEqual(lps.label(forWorldDirection: SIMD3(0.7, 0.7, 0)), "LP")
         XCTAssertEqual(CoordinateSystem.ras.label(forWorldDirection: SIMD3(1, 0, 0)), "R")
+    }
+
+    func testAlignedPlanesOfA2DGridAreNeverDegenerate() {
+        // A radiograph: one plane, whatever the standard plane asked for.
+        let g = GridGeometry(id: "xr", shape: [40, 30], spacing: [0.5, 0.5])
+        for plane in ViewPlane.allCases {
+            for convention in DisplayConvention.allCases {
+                let axes = PlaneAxes.aligned(plane, to: g, convention: convention)
+                XCTAssertEqual(abs(simd_dot(axes.right, axes.down)), 0, accuracy: 1e-12, "\(plane) \(convention)")
+                let n = axes.normal
+                XCTAssertTrue(n.x.isFinite && n.y.isFinite && n.z.isFinite, "\(plane) \(convention)")
+                XCTAssertEqual(abs(simd_dot(n, g.axisDirections[0])), 1, accuracy: 1e-12, "the grid's own plane")
+            }
+        }
     }
 
     func testStandardPlanesAreRadiological() {

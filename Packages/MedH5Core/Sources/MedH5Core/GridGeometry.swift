@@ -267,6 +267,8 @@ public struct GridGeometry: Sendable, Hashable, Codable {
         let n = paddedShape
         var v = SIMD3<Int>(0, 0, 0)
         for a in 0..<3 {
+            // NaN or infinite (a degenerate plane or geometry): no voxel.
+            guard k[a].isFinite, abs(k[a]) < Double(Int32.max) else { return nil }
             let r = Int((k[a] + 0.5).rounded(.down))
             if r < 0 || r >= n[a] { return nil }
             v[a] = r
