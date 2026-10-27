@@ -42,6 +42,21 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         workspace.shutDown()
     }
 
+    /// The window's text fields (the inspector's numbers and names, the
+    /// sidebar's search) edit with a field editor of their own, as the
+    /// panels' do (`PanelFieldEditor`): typing is undone on its own, so it
+    /// never marks the document edited; outside a field, Edit ▸ Undo takes
+    /// back the document's edits.
+    private let fieldEditor: PanelFieldEditor = {
+        let editor = PanelFieldEditor()
+        editor.isFieldEditor = true
+        return editor
+    }()
+
+    func windowWillReturnFieldEditor(_ sender: NSWindow, to client: Any?) -> Any? {
+        client is NSTextField ? fieldEditor : nil
+    }
+
     private var viewer: ViewerModel { workspace.viewer }
 
     // MARK: View menu
