@@ -19,6 +19,7 @@ final class SnapshotRunner {
     func start() {
         started = Date()
         (NSDocumentController.shared as? DocumentController)?.notesRecentDocuments = false
+        (NSDocumentController.shared as? DocumentController)?.presentsErrors = false
         if let appearance = options.appearance { NSApp.appearance = NSAppearance(named: appearance) }
         MedH5Document.skipsVerification = !options.verify
         Task { @MainActor in
@@ -142,17 +143,25 @@ final class SnapshotRunner {
     /// done, the integrity check finished and attributes asked for are in;
     /// then lets the run loop settle the layout.
     private func settle(window: NSWindow, workspace: Workspace?) async throws {
+        // What the window waited for when last it was not ready: readiness
+        // that comes and goes never settles, and a timeout names it.
+        var lastWaited: [String] = []
         while true {
             try await Task.sleep(nanoseconds: 50_000_000)
             if Date().timeIntervalSince(started) > options.timeout {
-                let pending = workspace?.store.pendingKeys.map(\.description).joined(separator: ", ") ?? ""
-                let why = pending.isEmpty ? (workspace.map(unreadiness) ?? "the window") : pending
+                let now = workspace.map(unreadiness) ?? []
+                let waited = now.isEmpty ? lastWaited.map { "\($0) (now and then)" } : now
+                let why = waited.isEmpty ? "the window" : waited.joined(separator: "; ")
                 throw SnapshotError("timed out after \(Int(options.timeout)) s waiting for: \(why)")
             }
             window.contentView?.layoutSubtreeIfNeeded()
-            if let workspace, !isReady(workspace) {
-                quietSince = nil
-                continue
+            if let workspace {
+                let waiting = unreadiness(workspace)
+                if !waiting.isEmpty {
+                    lastWaited = waiting
+                    quietSince = nil
+                    continue
+                }
             }
             if quietSince == nil { quietSince = Date() }
             if let q = quietSince, Date().timeIntervalSince(q) > 0.6 { break }
@@ -161,32 +170,15 @@ final class SnapshotRunner {
         RenderContext.shared?.waitUntilIdle()
     }
 
-    private func isReady(_ w: Workspace) -> Bool {
-        if !w.store.isIdle { return false }
-        if w.verification == .running { return false }
-        for key in w.neededResources() where w.store.failure(key) == nil && !w.store.isReady(key) {
-            return false
-        }
-        for id in w.viewer.visibleViewports {
-            if id == .volume {
-                guard let v = w.viewports.volume, v.container.window != nil, v.presentation.loading.isEmpty else { return false }
-            } else {
-                guard let s = w.viewports.slices[id], s.container.window != nil, s.presentation.loading.isEmpty else { return false }
-            }
-        }
-        if w.layout3DNeedsSurfaces { return false }
-        if w.showsInspector, w.inspectorTab == .info, let sel = w.selection, let path = w.objectPath(forNode: sel) {
-            if case .loaded? = w.attributeState(path) {} else if case .failed? = w.attributeState(path) {} else { return false }
-        }
-        return true
-    }
-
-    /// What `isReady` still waits for, in words (for a timeout).
-    private func unreadiness(_ w: Workspace) -> String {
+    /// What the window still waits for before it is captured, in words
+    /// (empty: ready) — loads, the integrity check, views, the 3-D view's
+    /// surfaces, the attributes asked for.
+    private func unreadiness(_ w: Workspace) -> [String] {
         var parts: [String] = []
+        for key in w.store.pendingKeys { parts.append("\(key) (loading)") }
         if w.verification == .running { parts.append("the integrity check") }
-        for key in w.neededResources() where w.store.failure(key) == nil && !w.store.isReady(key) {
-            parts.append("\(key) (\(w.store.isLoading(key) ? "loading" : "not requested"))")
+        for key in w.neededResources() where w.store.failure(key) == nil && !w.store.isReady(key) && !w.store.isLoading(key) {
+            parts.append("\(key) (not requested)")
         }
         for id in w.viewer.visibleViewports {
             let presentation = id == .volume ? w.viewports.volume?.presentation : w.viewports.slices[id]?.presentation
@@ -205,7 +197,7 @@ final class SnapshotRunner {
             default: parts.append("the attributes of \(sel)")
             }
         }
-        return parts.isEmpty ? "the window" : parts.joined(separator: "; ")
+        return parts
     }
 
     private func write(window: NSWindow, workspace: Workspace?) throws {

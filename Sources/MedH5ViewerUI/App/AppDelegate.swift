@@ -51,6 +51,19 @@ final class DocumentController: NSDocumentController {
     /// Set in the snapshot mode: its documents stay out of Open Recent.
     var notesRecentDocuments = true
 
+    /// Cleared in the snapshot mode, which nobody watches: an error the
+    /// controller would present (an alert, modal, that no one dismisses —
+    /// the run would hang) goes to standard error instead.
+    var presentsErrors = true
+
+    override func presentError(_ error: Error) -> Bool {
+        guard presentsErrors else {
+            FileHandle.standardError.write(Data("medh5-viewer: \(error.localizedDescription)\n".utf8))
+            return false
+        }
+        return super.presentError(error)
+    }
+
     override func noteNewRecentDocumentURL(_ url: URL) {
         guard notesRecentDocuments, !url.path.hasPrefix(FileManager.default.temporaryDirectory.path) else { return }
         super.noteNewRecentDocumentURL(url)
