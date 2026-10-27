@@ -55,6 +55,9 @@ extension Workspace {
             let pending = keys.filter { !store.isReady($0) && store.failure($0) == nil }
             if pending.isEmpty { return }
             if Date() > deadline { throw XCTSkip("timed out loading \(pending)") }
+            // Awaiting a finished load does not suspend: let the store's own
+            // completion (a main-actor task) run, or this loop spins.
+            try? await Task.sleep(nanoseconds: 5_000_000)
         }
     }
 }
