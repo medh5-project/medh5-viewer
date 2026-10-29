@@ -27,8 +27,8 @@ exactly as the engine does them:
 
 The bridge builds against the engine from crates.io (`medh5 = "=2.2.3"`) with
 the same patched HDF5 the medh5 workspace ships (`[patch.crates-io]
-hdf5-metno-src` from the v2.2.3 tag), so a crafted file cannot hang the
-viewer's HDF5 any more than it can the medh5 wheels.
+hdf5-metno-src` from a commit after the v2.2.3 tag), so a crafted file cannot
+hang the viewer's HDF5 any more than it can the medh5 wheels.
 
 ```
 ┌─────────────────────────────── medh5 Viewer.app ───────────────────────────────┐

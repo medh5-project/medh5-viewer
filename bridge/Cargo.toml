@@ -21,11 +21,14 @@ serde = "1"
 # A standalone workspace: the bridge never joins another one.
 [workspace]
 
-# HDF5 as the medh5 workspace ships it (vendor/hdf5-metno-src at the v2.2.3
-# tag, with the changes its PATCHES.md lists), so a crafted file cannot hang
-# the viewer's HDF5 any more than it can the medh5 wheels.
+# HDF5 as the medh5 workspace ships it (vendor/hdf5-metno-src, with the
+# changes its PATCHES.md lists), so a crafted file cannot hang the viewer's
+# HDF5 any more than it can the medh5 wheels. The commit is the merge of
+# medh5-project/medh5#116, after the v2.2.3 tag: before it, HDF5 wrote past
+# a buffer when a save copied a dataset that a verification held open. The
+# first medh5 release with the fix replaces the commit with its tag.
 [patch.crates-io]
-hdf5-metno-src = { git = "https://github.com/medh5-project/medh5", tag = "v2.2.3" }
+hdf5-metno-src = { git = "https://github.com/medh5-project/medh5", rev = "fc58bba74969aad883abdd4f8a21f47cee595a8a" }
 
 # One build configuration for everything: scripts/build-bridge.sh builds the
 # static library and `cargo test` the tests with `--release --target

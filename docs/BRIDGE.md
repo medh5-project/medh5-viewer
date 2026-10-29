@@ -34,10 +34,13 @@ did.
   where every other build reports an error), and `panic = "unwind"` lets the
   bridge catch a panic at the boundary.
 - **The patched HDF5.** `bridge/Cargo.toml` takes `hdf5-metno-src` from the
-  medh5 repository at the `v2.2.3` tag (`[patch.crates-io]`; cargo finds it at
+  medh5 repository at the commit that merged
+  [medh5-project/medh5#116](https://github.com/medh5-project/medh5/pull/116),
+  after the `v2.2.3` tag (`[patch.crates-io]`; cargo finds it at
   `vendor/hdf5-metno-src`), the HDF5 the medh5 wheels and binaries link, with
-  its fixes for crafted files. `Cargo.lock` records the git source, and the
-  script refuses to package a build that does not use it.
+  its fixes for crafted files and for copying a dataset another thread holds
+  open. `Cargo.lock` records the git source, and the script refuses to
+  package a build that does not use it.
 - **Linking.** The archive needs `-liconv -lSystem -lc -lm` from the system
   (`cargo rustc … -- --print native-static-libs`); MedH5Kit's `Package.swift`
   links exactly these. Built alone the static library is linked with thin LTO

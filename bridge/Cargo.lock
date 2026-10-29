@@ -341,7 +341,7 @@ dependencies = [
 [[package]]
 name = "hdf5-metno-src"
 version = "0.10.4"
-source = "git+https://github.com/medh5-project/medh5?tag=v2.2.3#a546466f568cf7cd2261b350fec5bd1e7c5cb133"
+source = "git+https://github.com/medh5-project/medh5?rev=fc58bba74969aad883abdd4f8a21f47cee595a8a#fc58bba74969aad883abdd4f8a21f47cee595a8a"
 dependencies = [
  "cmake",
  "libz-sys",

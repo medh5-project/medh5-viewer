@@ -4,6 +4,16 @@ All notable changes to medh5 Viewer are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Saving a document, or building its sampling index, while the document was
+  still being verified could crash the viewer: both copy the file's datasets,
+  and HDF5 wrote past the end of a buffer when it copied one the verification
+  held open. The viewer now links HDF5 with the medh5 engine's fix
+  ([medh5-project/medh5#116](https://github.com/medh5-project/medh5/pull/116)).
+
 ## [1.0.0] — 2026-10-27
 
 The first release: a native macOS viewer and editor for medh5 files, built on

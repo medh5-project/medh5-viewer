@@ -59,9 +59,10 @@ LIB="$CARGO_TARGET_DIR/$TARGET/$PROFILE/libmedh5_bridge.a"
 HEADER="$BRIDGE/include/medh5_bridge.h"
 [[ -f "$LIB" ]] || { echo "build-bridge.sh: $LIB was not built" >&2; exit 1; }
 
-# The patched HDF5 the medh5 workspace ships must be the one linked.
-if ! grep -q 'source = "git+https://github.com/medh5-project/medh5?tag=v2.2.3' "$BRIDGE/Cargo.lock"; then
-    echo "build-bridge.sh: Cargo.lock does not take hdf5-metno-src from the medh5 v2.2.3 tag" >&2
+# The patched HDF5 the medh5 workspace ships must be the one linked: the
+# commit bridge/Cargo.toml pins.
+if ! grep -q 'source = "git+https://github.com/medh5-project/medh5?rev=fc58bba74969aad883abdd4f8a21f47cee595a8a#' "$BRIDGE/Cargo.lock"; then
+    echo "build-bridge.sh: Cargo.lock does not take hdf5-metno-src from the medh5 commit bridge/Cargo.toml pins" >&2
     exit 1
 fi
 
