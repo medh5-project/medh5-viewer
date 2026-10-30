@@ -4,15 +4,24 @@ All notable changes to medh5 Viewer are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.1] — 2026-10-30
+
+A patch release that fixes a crash, built on the medh5 engine 2.2.4. It reads
+and writes the same format versions as 1.0.0 (1.0, 1.1 and 1.2) and still
+requires macOS 14 or later on Apple silicon.
 
 ### Fixed
 
-- Saving a document, or building its sampling index, while the document was
-  still being verified could crash the viewer: both copy the file's datasets,
-  and HDF5 wrote past the end of a buffer when it copied one the verification
-  held open. The viewer now builds on medh5 2.2.4, whose HDF5 has the fix
+- Saving a document while it was still being verified, which starts when it
+  opens, could crash the viewer or leave it running with damaged memory. So
+  could Build Sampling Index…, Recompress…, New Collection from Samples… with
+  that file, and applying an edit in the Document or Label Set window. All of
+  them copy the file's datasets, and HDF5 wrote past the end of a buffer when
+  it copied one the verification held open. The viewer now builds on medh5
+  2.2.4, whose HDF5 has the fix
   ([medh5-project/medh5#116](https://github.com/medh5-project/medh5/pull/116)).
+- The sources build with Xcode 26.6 (Swift 6.3), whose type checker gave up on
+  a few expressions in 1.0.0.
 
 ## [1.0.0] — 2026-10-27
 
@@ -91,4 +100,5 @@ or later on Apple silicon.
   every test suite, a signed app bundle (ad hoc, or Developer ID with
   notarization), a disk image, a zip and their checksums.
 
+[1.0.1]: https://github.com/medh5-project/medh5-viewer/releases/tag/v1.0.1
 [1.0.0]: https://github.com/medh5-project/medh5-viewer/releases/tag/v1.0.0
