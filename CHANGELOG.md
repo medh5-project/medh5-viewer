@@ -11,7 +11,7 @@ All notable changes to medh5 Viewer are recorded here. The format follows
 - Saving a document, or building its sampling index, while the document was
   still being verified could crash the viewer: both copy the file's datasets,
   and HDF5 wrote past the end of a buffer when it copied one the verification
-  held open. The viewer now links HDF5 with the medh5 engine's fix
+  held open. The viewer now builds on medh5 2.2.4, whose HDF5 has the fix
   ([medh5-project/medh5#116](https://github.com/medh5-project/medh5/pull/116)).
 
 ## [1.0.0] — 2026-10-27

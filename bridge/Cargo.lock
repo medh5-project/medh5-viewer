@@ -341,7 +341,7 @@ dependencies = [
 [[package]]
 name = "hdf5-metno-src"
 version = "0.10.4"
-source = "git+https://github.com/medh5-project/medh5?rev=fc58bba74969aad883abdd4f8a21f47cee595a8a#fc58bba74969aad883abdd4f8a21f47cee595a8a"
+source = "git+https://github.com/medh5-project/medh5?tag=v2.2.4#11f6b2d065df2c7c3bff571dcbbddd8ad0b562c4"
 dependencies = [
  "cmake",
  "libz-sys",
@@ -499,9 +499,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.30"
+version = "1.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f710a23e6dbf193214fd46ca56a9d6864e550abe86202184532ae7275e46de19"
+checksum = "ff20308ecabd635a2dc1dd5834a86c462cca20efba1d5d3ddab1f8aea3455cb2"
 dependencies = [
  "cc",
  "libc",
@@ -540,9 +540,9 @@ dependencies = [
 
 [[package]]
 name = "medh5"
-version = "2.2.3"
+version = "2.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c20348f4ddca9ac7b1743186ab51739b8ac8b2f8c87bd7b31a43fde469f85bf4"
+checksum = "e9b6338a90e772c48ecaa03d2cef2064780ab6eda6fb7cf5cfd2617b89dc0d78"
 dependencies = [
  "blake2",
  "digest",
@@ -578,9 +578,9 @@ dependencies = [
 
 [[package]]
 name = "medh5-sys"
-version = "2.2.3"
+version = "2.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21c7813ba3d708cae19ef0c55affe4b3e6c448e83c27330bca382db99a5c85bc"
+checksum = "456c3b3e308f994bfaa8564414bcbb5f30b4629d8931246ce35cb1baa8482b6a"
 dependencies = [
  "cc",
  "hdf5-metno-sys",

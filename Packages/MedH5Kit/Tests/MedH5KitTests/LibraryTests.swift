@@ -3,7 +3,7 @@ import XCTest
 
 final class LibraryTests: XCTestCase {
     func testVersionsThreadsCodesAndLevels() throws {
-        XCTAssertEqual(MedH5.engineVersion, "2.2.3")
+        XCTAssertEqual(MedH5.engineVersion, "2.2.4")
         XCTAssertEqual(MedH5.formatVersion, "1.2")
         XCTAssertFalse(MedH5.bridgeVersion.isEmpty)
         let before = MedH5.threads

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds the medh5 bridge (bridge/: the Rust crate `medh5-bridge`, a static
-# library over the medh5 engine 2.2.3) and packages it as
+# library over the medh5 engine 2.2.4) and packages it as
 #
 #     Packages/MedH5Kit/Frameworks/MedH5Bridge.xcframework
 #
@@ -60,9 +60,9 @@ HEADER="$BRIDGE/include/medh5_bridge.h"
 [[ -f "$LIB" ]] || { echo "build-bridge.sh: $LIB was not built" >&2; exit 1; }
 
 # The patched HDF5 the medh5 workspace ships must be the one linked: the
-# commit bridge/Cargo.toml pins.
-if ! grep -q 'source = "git+https://github.com/medh5-project/medh5?rev=fc58bba74969aad883abdd4f8a21f47cee595a8a#' "$BRIDGE/Cargo.lock"; then
-    echo "build-bridge.sh: Cargo.lock does not take hdf5-metno-src from the medh5 commit bridge/Cargo.toml pins" >&2
+# tag bridge/Cargo.toml pins, at the commit it was made on.
+if ! grep -q 'source = "git+https://github.com/medh5-project/medh5?tag=v2.2.4#11f6b2d065df2c7c3bff571dcbbddd8ad0b562c4"' "$BRIDGE/Cargo.lock"; then
+    echo "build-bridge.sh: Cargo.lock does not take hdf5-metno-src from the medh5 tag bridge/Cargo.toml pins" >&2
     exit 1
 fi
 

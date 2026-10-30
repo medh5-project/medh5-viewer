@@ -49,12 +49,12 @@ PACKAGES
   jsonschema-regex 0.58.6 — MIT (https://github.com/Stranger6667/jsonschema)
   jsonschema-value 0.58.6 — MIT (https://github.com/Stranger6667/jsonschema)
   libc 0.2.191 — MIT OR Apache-2.0 (https://github.com/rust-lang/libc)
-  libz-sys 1.1.30 — MIT OR Apache-2.0 (https://github.com/rust-lang/libz-sys)
+  libz-sys 1.1.31 — MIT OR Apache-2.0 (https://github.com/rust-lang/libz-sys)
   lock_api 0.4.14 — MIT OR Apache-2.0 (https://github.com/Amanieu/parking_lot)
   lz4-sys 1.11.1+lz4-1.10.0 — MIT (https://github.com/10xGenomics/lz4-rs)
   matrixmultiply 0.3.11 — MIT/Apache-2.0 (https://github.com/bluss/matrixmultiply/)
-  medh5 2.2.3 — MIT (https://github.com/medh5-project/medh5)
-  medh5-sys 2.2.3 — MIT AND BSD-3-Clause (https://github.com/medh5-project/medh5)
+  medh5 2.2.4 — MIT (https://github.com/medh5-project/medh5)
+  medh5-sys 2.2.4 — MIT AND BSD-3-Clause (https://github.com/medh5-project/medh5)
   memchr 2.8.3 — Unlicense OR MIT (https://github.com/BurntSushi/memchr)
   micromap 0.3.0 — MIT (https://github.com/yegor256/micromap)
   miniz_oxide 0.9.1 — MIT OR Zlib OR Apache-2.0 (https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide)
@@ -395,7 +395,7 @@ fraction 0.17.0 (LICENSE-APACHE)
 hashbrown 0.17.1 (LICENSE-APACHE)
 heck 0.5.0 (LICENSE-APACHE)
 indexmap 2.14.2 (LICENSE-APACHE)
-libz-sys 1.1.30 (LICENSE-APACHE)
+libz-sys 1.1.31 (LICENSE-APACHE)
 lock_api 0.4.14 (LICENSE-APACHE)
 matrixmultiply 0.3.11 (LICENSE-APACHE)
 ndarray 0.17.2 (LICENSE-APACHE)
@@ -3018,7 +3018,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-libz-sys 1.1.30 (LICENSE-MIT)
+libz-sys 1.1.31 (LICENSE-MIT)
 ==============================================================================
 
 Copyright (c) 2014 Alex Crichton
@@ -3049,7 +3049,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-libz-sys 1.1.30 (zlib: src/zlib/LICENSE)
+libz-sys 1.1.31 (zlib: src/zlib/LICENSE)
 ==============================================================================
 
 Copyright notice:
@@ -3212,8 +3212,8 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-medh5 2.2.3 (LICENSE)
-medh5-sys 2.2.3 (LICENSE)
+medh5 2.2.4 (LICENSE)
+medh5-sys 2.2.4 (LICENSE)
 ==============================================================================
 
 MIT License
@@ -3239,7 +3239,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-medh5-sys 2.2.3 (C-Blosc2, the codecs it bundles, and the HDF5-Blosc2 filter: vendor/c-blosc2/LICENSE.txt)
+medh5-sys 2.2.4 (C-Blosc2, the codecs it bundles, and the HDF5-Blosc2 filter: vendor/c-blosc2/LICENSE.txt)
 ==============================================================================
 
 BSD License
@@ -3275,7 +3275,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ==============================================================================
-medh5-sys 2.2.3 (C-Blosc2, the codecs it bundles, and the HDF5-Blosc2 filter: vendor/c-blosc2/LICENSES/BITSHUFFLE.txt)
+medh5-sys 2.2.4 (C-Blosc2, the codecs it bundles, and the HDF5-Blosc2 filter: vendor/c-blosc2/LICENSES/BITSHUFFLE.txt)
 ==============================================================================
 
 Bitshuffle - Filter for improving compression of typed binary data.
@@ -3301,7 +3301,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ==============================================================================
-medh5-sys 2.2.3 (C-Blosc2, the codecs it bundles, and the HDF5-Blosc2 filter: vendor/c-blosc2/LICENSES/FASTLZ.txt)
+medh5-sys 2.2.4 (C-Blosc2, the codecs it bundles, and the HDF5-Blosc2 filter: vendor/c-blosc2/LICENSES/FASTLZ.txt)
 ==============================================================================
 
 FastLZ - Byte-aligned LZ77 compression library
@@ -3326,7 +3326,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ==============================================================================
-medh5-sys 2.2.3 (C-Blosc2, the codecs it bundles, and the HDF5-Blosc2 filter: vendor/hdf5-blosc2/LICENSE.txt)
+medh5-sys 2.2.4 (C-Blosc2, the codecs it bundles, and the HDF5-Blosc2 filter: vendor/hdf5-blosc2/LICENSE.txt)
 ==============================================================================
 
 Blosc2 for HDF5 - An HDF5 filter that uses the Blosc2 compressor.

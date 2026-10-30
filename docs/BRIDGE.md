@@ -1,14 +1,14 @@
 # The bridge
 
 The viewer reads and writes medh5 files through one engine, the Rust crate
-[`medh5`](https://crates.io/crates/medh5) **2.2.3**, which the Python package
+[`medh5`](https://crates.io/crates/medh5) **2.2.4**, which the Python package
 and the `medh5` command line also run. `bridge/` is a small Rust crate,
 `medh5-bridge`, that exports the engine as a C library;
 `bridge/include/medh5_bridge.h` is the contract and this page its reference.
 `Packages/MedH5Kit` is the Swift API over it.
 
 ```
-Swift (MedH5Kit) ──C ABI──▶ medh5-bridge (Rust staticlib) ──▶ medh5 2.2.3 ──▶ HDF5 2.2.0 (patched), Blosc2, zstd
+Swift (MedH5Kit) ──C ABI──▶ medh5-bridge (Rust staticlib) ──▶ medh5 2.2.4 ──▶ HDF5 2.2.0 (patched), Blosc2, zstd
 ```
 
 ## Building
@@ -34,13 +34,13 @@ did.
   where every other build reports an error), and `panic = "unwind"` lets the
   bridge catch a panic at the boundary.
 - **The patched HDF5.** `bridge/Cargo.toml` takes `hdf5-metno-src` from the
-  medh5 repository at the commit that merged
-  [medh5-project/medh5#116](https://github.com/medh5-project/medh5/pull/116),
-  after the `v2.2.3` tag (`[patch.crates-io]`; cargo finds it at
-  `vendor/hdf5-metno-src`), the HDF5 the medh5 wheels and binaries link, with
-  its fixes for crafted files and for copying a dataset another thread holds
-  open. `Cargo.lock` records the git source, and the script refuses to
-  package a build that does not use it.
+  medh5 repository at the `v2.2.4` tag, the release of the engine it builds
+  (`[patch.crates-io]`; cargo finds it at `vendor/hdf5-metno-src`): the HDF5
+  the medh5 wheels and binaries link, with its fixes for crafted files and,
+  from 2.2.4, for copying a dataset another thread holds open
+  ([medh5-project/medh5#116](https://github.com/medh5-project/medh5/pull/116)).
+  `Cargo.lock` records the git source, and the script refuses to package a
+  build that does not use it.
 - **Linking.** The archive needs `-liconv -lSystem -lc -lm` from the system
   (`cargo rustc … -- --print native-static-libs`); MedH5Kit's `Package.swift`
   links exactly these. Built alone the static library is linked with thin LTO

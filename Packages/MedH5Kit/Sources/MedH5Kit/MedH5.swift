@@ -5,7 +5,7 @@ import MedH5Bridge
 /// The medh5 engine the bridge links: versions, threads, the diagnostic code
 /// table and the validation levels.
 public enum MedH5 {
-    /// The engine's package version (`"2.2.3"`).
+    /// The engine's package version (`"2.2.4"`).
     public static var engineVersion: String { String(cString: m5_engine_version()) }
 
     /// The newest format version the engine implements (`"1.2"`).

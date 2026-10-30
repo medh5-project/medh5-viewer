@@ -4,7 +4,7 @@ medh5 Viewer opens, inspects and edits [medh5](https://github.com/medh5-project/
 samples on the Mac: the images of a subject, every kind of annotation the
 format holds, the transforms between frames, the clinical history, and the
 curation records. It reads and writes files through the medh5 engine itself
-(version 2.2.3), so what it shows and what it saves is exactly what the
+(version 2.2.4), so what it shows and what it saves is exactly what the
 format defines.
 
 - [Getting started](#getting-started)

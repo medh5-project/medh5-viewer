@@ -13,7 +13,7 @@ path = "src/lib.rs"
 crate-type = ["staticlib", "rlib"]
 
 [dependencies]
-medh5 = "=2.2.3"
+medh5 = "=2.2.4"
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
 half = "2.4"
 serde = "1"
@@ -23,12 +23,12 @@ serde = "1"
 
 # HDF5 as the medh5 workspace ships it (vendor/hdf5-metno-src, with the
 # changes its PATCHES.md lists), so a crafted file cannot hang the viewer's
-# HDF5 any more than it can the medh5 wheels. The commit is the merge of
-# medh5-project/medh5#116, after the v2.2.3 tag: before it, HDF5 wrote past
-# a buffer when a save copied a dataset that a verification held open. The
-# first medh5 release with the fix replaces the commit with its tag.
+# HDF5 any more than it can the medh5 wheels. The tag is the release of the
+# engine above: from 2.2.4 HDF5 no longer writes past a buffer when a save
+# copies a dataset that a verification holds open (medh5-project/medh5#116).
+# crates.io's hdf5-metno-src has none of these changes.
 [patch.crates-io]
-hdf5-metno-src = { git = "https://github.com/medh5-project/medh5", rev = "fc58bba74969aad883abdd4f8a21f47cee595a8a" }
+hdf5-metno-src = { git = "https://github.com/medh5-project/medh5", tag = "v2.2.4" }
 
 # One build configuration for everything: scripts/build-bridge.sh builds the
 # static library and `cargo test` the tests with `--release --target

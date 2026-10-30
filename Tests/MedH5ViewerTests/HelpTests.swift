@@ -154,7 +154,7 @@ final class HelpTests: XCTestCase {
         let packages = Acknowledgements.packages(text)
         XCTAssertGreaterThan(packages.count, 50)
         let medh5 = try XCTUnwrap(packages.first { $0.name == "medh5" })
-        XCTAssertEqual(medh5.version, "2.2.3")
+        XCTAssertEqual(medh5.version, "2.2.4")
         XCTAssertEqual(medh5.license, "MIT")
         XCTAssertEqual(medh5.url, "https://github.com/medh5-project/medh5")
         let hdf5 = try XCTUnwrap(packages.first { $0.name == "hdf5-metno-src" })

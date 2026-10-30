@@ -35,7 +35,7 @@ VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 BUILD_NUMBER="${BUILD_NUMBER:-$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)}"
 XCFRAMEWORK="$ROOT/Packages/MedH5Kit/Frameworks/MedH5Bridge.xcframework"
 ENGINE_VERSION="$(awk '/^name = "medh5"$/{getline; gsub(/version = |"/, ""); print; exit}' "$ROOT/bridge/Cargo.lock" 2>/dev/null || true)"
-ENGINE_VERSION="${ENGINE_VERSION:-2.2.3}"
+ENGINE_VERSION="${ENGINE_VERSION:-2.2.4}"
 
 step() { printf '\n==> %s\n' "$*"; }
 

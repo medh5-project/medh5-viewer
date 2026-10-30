@@ -1,7 +1,7 @@
 // swift-tools-version: 6.0
 // MedH5Kit: the medh5 format for Swift — reading, writing, validating and
 // converting samples through the medh5 engine (Rust, crates.io `medh5`
-// 2.2.3), which the bridge in ../../bridge exports as a C library.
+// 2.2.4), which the bridge in ../../bridge exports as a C library.
 //
 // scripts/build-bridge.sh builds that library and places it here as
 // Frameworks/MedH5Bridge.xcframework; build it before building this package.

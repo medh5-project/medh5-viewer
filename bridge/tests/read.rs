@@ -14,7 +14,7 @@ use medh5_bridge::*;
 #[test]
 fn library_versions_threads_codes_and_levels() {
     let version = |p: *const std::ffi::c_char| unsafe { CStr::from_ptr(p) }.to_str().unwrap().to_string();
-    assert_eq!(version(m5_engine_version()), "2.2.3");
+    assert_eq!(version(m5_engine_version()), "2.2.4");
     assert_eq!(version(m5_engine_version()), medh5::VERSION);
     assert_eq!(version(m5_format_version()), "1.2");
     assert!(!version(m5_bridge_version()).is_empty());

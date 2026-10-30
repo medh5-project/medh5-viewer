@@ -2,7 +2,7 @@
 
 medh5 Viewer is a native macOS application (AppKit + SwiftUI, Metal) for
 viewing and editing [medh5](https://github.com/medh5-project/medh5) files. It
-targets medh5 **2.2.3** — format versions 1.0, 1.1 and 1.2 — on Apple silicon,
+targets medh5 **2.2.4** — format versions 1.0, 1.1 and 1.2 — on Apple silicon,
 macOS 14 or later.
 
 ## One engine, a fourth frontend
@@ -25,10 +25,10 @@ exactly as the engine does them:
 - the clinical profile (1.1), polylines (1.2), projections of later minors;
 - NIfTI import and export, recompression, collections.
 
-The bridge builds against the engine from crates.io (`medh5 = "=2.2.3"`) with
+The bridge builds against the engine from crates.io (`medh5 = "=2.2.4"`) with
 the same patched HDF5 the medh5 workspace ships (`[patch.crates-io]
-hdf5-metno-src` from a commit after the v2.2.3 tag), so a crafted file cannot
-hang the viewer's HDF5 any more than it can the medh5 wheels.
+hdf5-metno-src` from the v2.2.4 tag), so a crafted file cannot hang the
+viewer's HDF5 any more than it can the medh5 wheels.
 
 ```
 ┌─────────────────────────────── medh5 Viewer.app ───────────────────────────────┐
@@ -37,7 +37,7 @@ hang the viewer's HDF5 any more than it can the medh5 wheels.
 │   ├── MedH5Render   Metal: slice/MPR, volume ray casting, meshes, overlays     │
 │   ├── MedH5Editing  segmentation editing, undo diffs, measurements             │
 │   ├── MedH5Kit      Swift API over the C bridge (Sample, SampleWriter, …)      │
-│   │     └── MedH5Bridge.xcframework  ← bridge/ (Rust staticlib) ← medh5 2.2.3  │
+│   │     └── MedH5Bridge.xcframework  ← bridge/ (Rust staticlib) ← medh5 2.2.4  │
 │   └── MedH5Core     ScalarType, GridGeometry, VolumeData, ImageVolume, …       │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```

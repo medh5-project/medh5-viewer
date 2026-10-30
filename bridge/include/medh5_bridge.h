@@ -1,6 +1,6 @@
 /*
  * medh5_bridge.h — the C interface between the medh5 format engine (Rust,
- * the `medh5` crate, version 2.2.3) and the macOS viewer (Swift).
+ * the `medh5` crate, version 2.2.4) and the macOS viewer (Swift).
  *
  * The viewer reads and writes medh5 files only through this interface, so it
  * reads and writes exactly the bytes the Python package and the `medh5`
@@ -106,7 +106,7 @@ void m5_string_free(char *s);
 /* Library                                                                  */
 /* ------------------------------------------------------------------------ */
 
-/* The engine's package version ("2.2.3"); static, do not free. */
+/* The engine's package version ("2.2.4"); static, do not free. */
 const char *m5_engine_version(void);
 /* The newest format version the engine implements ("1.2"); static. */
 const char *m5_format_version(void);

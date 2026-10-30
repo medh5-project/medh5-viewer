@@ -16,7 +16,7 @@ label set, import and export NIfTI, and save through the medh5 engine's
 copy-on-write amendment, validated on every save.
 
 It is built with AppKit, SwiftUI and Metal, and reads and writes files through
-the medh5 engine itself (Rust, `medh5` 2.2.3) — so it writes exactly the bytes
+the medh5 engine itself (Rust, `medh5` 2.2.4) — so it writes exactly the bytes
 the Python package and the `medh5` command line write.
 
 ![A sample in the 2 × 2 layout: three planes with every annotation, and the 3-D view](docs/images/viewer.png)

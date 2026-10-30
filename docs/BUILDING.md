@@ -23,7 +23,7 @@ scripts build in `~/Library/Caches/medh5-viewer/<repository>-<hash>/`
 instead. Set `MEDH5_VIEWER_BUILD_ROOT` to choose the place yourself.
 
 `scripts/build-bridge.sh` compiles the Rust crate in `bridge/` (which pulls
-the `medh5` engine 2.2.3 from crates.io and the patched HDF5 the medh5
+the `medh5` engine 2.2.4 from crates.io and the patched HDF5 the medh5
 project ships) and wraps it as
 `Packages/MedH5Kit/Frameworks/MedH5Bridge.xcframework`. Rerun it after
 changing anything in `bridge/`; `scripts/build-app.sh --rebuild-bridge` does

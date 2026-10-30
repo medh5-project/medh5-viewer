@@ -12,7 +12,7 @@ fn static_c(cell: &'static OnceLock<CString>, text: &str) -> *const c_char {
     cell.get_or_init(|| CString::new(text).expect("versions hold no NUL")).as_ptr()
 }
 
-/// The engine's package version (`"2.2.3"`).
+/// The engine's package version (`"2.2.4"`).
 #[no_mangle]
 pub extern "C" fn m5_engine_version() -> *const c_char {
     static CELL: OnceLock<CString> = OnceLock::new();
