@@ -52,12 +52,11 @@ final class SnapshotRunner {
             }
             guard let window else { throw SnapshotError("no \(name) window") }
             if let appearance = options.appearance { window.appearance = NSAppearance(named: appearance) }
-            window.alphaValue = 0
-            window.orderFrontRegardless()
+            WindowCapture.orderInUnseen(window)
             try await Task.sleep(nanoseconds: 700_000_000)
             window.contentView?.layoutSubtreeIfNeeded()
             window.displayIfNeeded()
-            try write(window: window, workspace: nil)
+            try await write(window: window, workspace: nil)
             return
         }
         let doc = try await openDocument()
@@ -67,27 +66,52 @@ final class SnapshotRunner {
         guard let window = doc.windowControllers.first?.window else {
             throw SnapshotError("the document made no window")
         }
-        window.setContentSize(options.size)
+        let size = options.contentSize(in: window)
+        if !options.widestPanels { window.setContentSize(size) }
         window.setFrameOrigin(NSPoint(x: 40, y: 40))
         if let appearance = options.appearance { window.appearance = NSAppearance(named: appearance) }
-        window.alphaValue = 0
-        // Invisible, but over the screen: input meant for other apps
-        // (scrolling, clicks) must not move its slices.
-        window.ignoresMouseEvents = true
-        window.orderFrontRegardless()
+        WindowCapture.orderInUnseen(window)
 
         if let collection = doc as? MedH5CollectionDocument {
             _ = collection
             try await settle(window: window, workspace: nil)
-            try write(window: window, workspace: nil)
+            try await write(window: window, workspace: nil)
             return
         }
         guard let workspace = (doc as? MedH5Document)?.workspace else { throw SnapshotError("no workspace") }
         configure(workspace)
         if let script = options.editScript { try await EditScript.run(script, workspace: workspace) }
         if let tool = options.tool { workspace.viewer.tool = tool }
+        if options.widestPanels {
+            try await settle(window: window, workspace: workspace)
+            try await Self.dragPanelsWideAndNarrow(window, to: size)
+        }
         try await settle(window: window, workspace: workspace)
-        try write(window: window, workspace: workspace)
+        try await write(window: window, workspace: workspace)
+    }
+
+    /// The way to the tightest window a user can reach: the sidebar's and
+    /// the inspector's dividers dragged as far as they go, then the window's
+    /// corner in, a few points at a time.
+    static func dragPanelsWideAndNarrow(_ window: NSWindow, to size: NSSize) async throws {
+        func splitViews(in view: NSView) -> [NSSplitView] {
+            var inner = view.subviews.flatMap(splitViews)
+            if let split = view as? NSSplitView { inner.insert(split, at: 0) }
+            return inner
+        }
+        guard let content = window.contentView else { return }
+        for split in splitViews(in: content) where split.arrangedSubviews.count > 1 {
+            let items = (split.delegate as? NSSplitViewController)?.splitViewItems ?? []
+            split.setPosition(items.last?.behavior == .inspector ? 0 : split.bounds.width, ofDividerAt: 0)
+            content.layoutSubtreeIfNeeded()
+        }
+        var current = content.frame.size
+        while current.width > size.width || current.height > size.height {
+            current = NSSize(width: max(size.width, current.width - 8), height: max(size.height, current.height - 8))
+            window.setContentSize(current)
+            window.displayIfNeeded()
+            try await Task.sleep(nanoseconds: 16_000_000)
+        }
     }
 
     private func openDocument() async throws -> NSDocument {
@@ -201,7 +225,9 @@ final class SnapshotRunner {
         return parts
     }
 
-    private func write(window: NSWindow, workspace: Workspace?) throws {
+    private func write(window: NSWindow, workspace: Workspace?) async throws {
+        if options.activate { try await WindowCapture.activate(window) }
+        reportToolbarOverflow(window)
         var viewports: [WindowCapture.Viewport] = []
         if let workspace {
             for id in workspace.viewer.visibleViewports {
@@ -212,7 +238,7 @@ final class SnapshotRunner {
                 }
             }
         }
-        let capture = try WindowCapture.capture(window: window, scale: options.scale, viewports: viewports)
+        let capture = try await WindowCapture.capture(window: window, scale: options.scale, viewports: viewports)
         var paths: [String] = []
         let windowURL = options.outDirectory.appendingPathComponent("window.png")
         try ImageExport.writePNG(capture.window, to: windowURL)
@@ -225,6 +251,17 @@ final class SnapshotRunner {
         for p in paths { print(p) }
         fflush(stdout)
         finish(code: 0)
+    }
+
+    /// Names on standard error what the toolbar could not fit: it stays
+    /// usable from the overflow menu, so nothing else shows it.
+    private func reportToolbarOverflow(_ window: NSWindow) {
+        guard let toolbar = window.toolbar else { return }
+        let visible = Set((toolbar.visibleItems ?? []).map(\.itemIdentifier))
+        let hidden = toolbar.items.filter { !visible.contains($0.itemIdentifier) }
+        guard !hidden.isEmpty else { return }
+        let names = hidden.map { $0.label.isEmpty ? $0.itemIdentifier.rawValue : $0.label }
+        FileHandle.standardError.write(Data("medh5-viewer --snapshot: toolbar overflow: \(names.joined(separator: ", "))\n".utf8))
     }
 
     private func fail(_ error: Error) {
