@@ -4,27 +4,40 @@ All notable changes to medh5 Viewer are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] — 2026-10-31
+
+A minor release that brings the design of macOS 26 and later, built on the
+medh5 engine 2.2.4 like 1.0.1. It reads and writes the same format versions
+(1.0, 1.1 and 1.2) and still requires macOS 14 or later on Apple silicon.
+
+### Added
+
+- Snapshot mode's `--activate` captures the window as it looks in use, and
+  `--widest-panels` at the tightest a user can make it. Toolbar items that do
+  not fit are named on standard error.
 
 ### Changed
 
 - On macOS 26 and later the app takes the system's new design, with the toolbar
-  in capsules. macOS 14 and 15 look as before.
+  in capsules. macOS 14 and 15 look as before, and the user guide's screenshots
+  show the new design on every system.
 - On macOS 26 and later the sidebar goes up to 320 points wide and the
   inspector to 340 (440 and 460 before), and the document window down to 1000
-  points wide (900 before). In the new design AppKit ended the app when the
-  window got too narrow for its panels.
+  points wide (900 before): in the new design the viewer runs under both
+  panels, and the window has to hold them.
 - The Document window goes down to 810 points wide (620 before), where every
   page fits, and the lists of its Timepoints and Quality pages have a fixed
   width.
-- Snapshot mode captures the window as the window server composites it, so
-  materials and vibrant text come out as on screen, with no Screen Recording
-  permission and without showing the window. `--activate` captures it active,
-  `--widest-panels` at the tightest a user can make it, and `--size` stops at
-  the window's minimum.
-- Building takes Xcode 26 or later. `scripts/build-app.sh` and `scripts/test.sh`
-  make Swift 6.4 record the SDK the app links, which decides its design, and
-  CI takes snapshots of the built app on macOS 14, 15 and 26.
+- From macOS 14.4 snapshot mode captures the window as the window server
+  composites it, so materials and vibrant text come out as on screen, with no
+  Screen Recording permission and without showing the window. The window's
+  chrome is then no sharper than its display, whatever `--scale` asks for.
+  `--size` stops at the window's minimum, and a document window can now be
+  larger than the display.
+- Building takes Xcode 26 or later, whose SDK gives the app the new design.
+  `scripts/build-app.sh` and `scripts/test.sh` name that SDK to the linker,
+  which Swift 6.4 otherwise leaves out, and CI takes snapshots of the built app
+  on macOS 14, 15 and 26.
 
 ### Fixed
 
@@ -32,6 +45,8 @@ All notable changes to medh5 Viewer are recorded here. The format follows
   the inspector button went into its overflow in a window of the default size.
 - The document window's status bar was cut off at the window's minimum height.
 - The Compare bar's timepoint wrapped letter by letter in a narrow viewer.
+- An edit made while the 3-D view's surfaces were being extracted could leave
+  them showing the segmentation from before the edit.
 
 ## [1.0.1] — 2026-10-30
 
@@ -129,5 +144,6 @@ or later on Apple silicon.
   every test suite, a signed app bundle (ad hoc, or Developer ID with
   notarization), a disk image, a zip and their checksums.
 
+[1.1.0]: https://github.com/medh5-project/medh5-viewer/releases/tag/v1.1.0
 [1.0.1]: https://github.com/medh5-project/medh5-viewer/releases/tag/v1.0.1
 [1.0.0]: https://github.com/medh5-project/medh5-viewer/releases/tag/v1.0.0
