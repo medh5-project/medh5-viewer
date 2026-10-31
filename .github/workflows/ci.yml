@@ -44,24 +44,26 @@ jobs:
       - name: Third-party notices are current
         run: python3 -I scripts/third_party_notices.py --check
 
-      - name: Test everything
-        run: scripts/test.sh
-
       - name: Build the app bundle
         run: scripts/build-app.sh
 
       - name: Package
         run: scripts/package-dmg.sh
 
+      # Before the tests: when one fails, the app and its snapshots show why.
       - uses: actions/upload-artifact@v4
         with:
           name: medh5-viewer-${{ github.sha }}
           path: build/dist/*
           retention-days: 14
 
+      - name: Test everything
+        run: scripts/test.sh
+
   snapshots:
     name: Snapshots (${{ matrix.runner }})
     needs: test
+    if: ${{ !cancelled() }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     strategy:
@@ -77,6 +79,7 @@ jobs:
       - name: Take the snapshots
         run: |
           sw_vers
+          system_profiler SPDisplaysDataType | grep -E 'Resolution|Main Display'
           ditto -x -k dist/*.zip .
           viewer="medh5 Viewer.app/Contents/MacOS/medh5-viewer"
           for layout in single 1x3 2x2 3d compare; do

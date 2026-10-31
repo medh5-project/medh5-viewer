@@ -261,7 +261,9 @@ final class SnapshotRunner {
         let hidden = toolbar.items.filter { !visible.contains($0.itemIdentifier) }
         guard !hidden.isEmpty else { return }
         let names = hidden.map { $0.label.isEmpty ? $0.itemIdentifier.rawValue : $0.label }
-        FileHandle.standardError.write(Data("medh5-viewer --snapshot: toolbar overflow: \(names.joined(separator: ", "))\n".utf8))
+        let width = Int(window.frame.width)
+        let report = "medh5-viewer --snapshot: toolbar overflow in a window \(width) points wide: \(names.joined(separator: ", "))\n"
+        FileHandle.standardError.write(Data(report.utf8))
     }
 
     private func fail(_ error: Error) {
