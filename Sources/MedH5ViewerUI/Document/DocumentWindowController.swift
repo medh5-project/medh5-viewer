@@ -296,6 +296,15 @@ final class DocumentWindow: NSWindow {
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
         fitsTheScreen ? super.constrainFrameRect(frameRect, to: screen) : frameRect
     }
+
+    /// Stays hidden: on macOS 15 and 26 SwiftUI's toolbar makes it visible
+    /// again, and the title takes its items' width. `toolbar(removing: .title)`
+    /// is not the way: linked against an SDK before macOS 26, as a plain
+    /// `swift build` with Swift 6.4 is, the app ends there on macOS 27.
+    override var titleVisibility: NSWindow.TitleVisibility {
+        get { .hidden }
+        set { super.titleVisibility = .hidden }
+    }
 }
 
 enum MenuValidation {

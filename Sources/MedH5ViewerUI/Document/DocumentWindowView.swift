@@ -6,14 +6,18 @@ import MedH5Render
 ///
 /// In the design of macOS 26 and later the viewer runs under the sidebar and
 /// the inspector, and the two split views then need twice the sidebar's width
-/// plus the inspector's. In a narrower window they overflow it, or they never
-/// settle and AppKit ends the app ("more Update Constraints in Window passes
-/// than there are views in the window"), so there the widest panels have to
-/// fit the narrowest window.
+/// plus the inspector's, and what the viewer's bars need on top. In a narrower
+/// window they overflow it, or they never settle and AppKit ends the app
+/// ("more Update Constraints in Window passes than there are views in the
+/// window"), so there the widest panels have to fit the narrowest window, and
+/// the viewer's bars count for nothing. Before macOS 26 those bars are what
+/// keeps the panels from closing the viewer.
 enum PanelLimits {
     static var sidebarMaximum: CGFloat { overlaysViewer ? 320 : 440 }
     static var inspectorMaximum: CGFloat { overlaysViewer ? 340 : 460 }
     static var minimumWindowWidth: CGFloat { overlaysViewer ? 1000 : 900 }
+    /// The viewer's minimum width in the split view; nil is what it needs.
+    static var viewerMinimum: CGFloat? { overlaysViewer ? 0 : nil }
 
     private static var overlaysViewer: Bool {
         if #available(macOS 26, *) { return true }
@@ -44,9 +48,7 @@ struct DocumentWindowView: View {
                 }
                 ViewerView(workspace: workspace)
             }
-            // What the viewer's bars need counts for nothing: `PanelLimits`
-            // holds only without it.
-            .frame(minWidth: 0)
+            .frame(minWidth: PanelLimits.viewerMinimum)
             .inspector(isPresented: $workspace.showsInspector) {
                 InspectorView(workspace: workspace)
                     .inspectorColumnWidth(min: 270, ideal: 310, max: PanelLimits.inspectorMaximum)

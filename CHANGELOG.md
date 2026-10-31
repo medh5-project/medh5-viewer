@@ -28,6 +28,8 @@ All notable changes to medh5 Viewer are recorded here. The format follows
 
 ### Fixed
 
+- On macOS 15 the window's title took the toolbar's width, and the 3-D menu and
+  the inspector button went into its overflow in a window of the default size.
 - The document window's status bar was cut off at the window's minimum height.
 - The Compare bar's timepoint wrapped letter by letter in a narrow viewer.
 
