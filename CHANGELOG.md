@@ -4,6 +4,14 @@ All notable changes to medh5 Viewer are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- CI takes snapshots of the built app on macOS 15 and 26, since GitHub retires
+  its macOS 14 runners on November 2, 2026. macOS 14 stays the minimum, but CI
+  can no longer run the app there.
+
 ## [1.1.0] — 2026-10-31
 
 A minor release that brings the design of macOS 26 and later, built on the
