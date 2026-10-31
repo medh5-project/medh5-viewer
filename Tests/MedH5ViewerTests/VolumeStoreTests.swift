@@ -93,6 +93,73 @@ final class VolumeStoreTests: XCTestCase {
         XCTAssertEqual(store.totalBytes, 0)
     }
 
+    func testAResourcePutOverALoadStays() async throws {
+        let key = ResourceKey.image("CT_tp0")
+        for readEnded in [false, true] {
+            let store = VolumeStore(file: try SampleFile.open(Fixtures.demo), context: nil)
+            let own = UnsavedObjectResource()
+            giveUpALoad(of: key, in: store, readEnded: readEnded) { store.put(key, own) }
+            await Task.yield()
+            XCTAssertTrue(store.ready(key, as: UnsavedObjectResource.self) === own)
+            XCTAssertEqual(store.totalBytes, own.byteCount)
+        }
+    }
+
+    func testALoadGivenUpRecordsNothing() async throws {
+        let key = ResourceKey.image("CT_tp0")
+        let ways: [@MainActor (VolumeStore) -> Void] = [{ $0.evict(key) }, { $0.cancelAll() }]
+        for readEnded in [false, true] {
+            for giveUp in ways {
+                let store = VolumeStore(file: try SampleFile.open(Fixtures.demo), context: nil)
+                giveUpALoad(of: key, in: store, readEnded: readEnded) { giveUp(store) }
+                await Task.yield()
+                XCTAssertTrue(store.states.isEmpty)
+                XCTAssertEqual(store.totalBytes, 0)
+            }
+        }
+    }
+
+    func testALoadGivenUpLeavesTheNextLoadOfItsKeyAlone() async throws {
+        let key = ResourceKey.image("CT_tp0")
+        for readEnded in [false, true] {
+            let store = VolumeStore(file: try SampleFile.open(Fixtures.demo), context: nil)
+            giveUpALoad(of: key, in: store, readEnded: readEnded) { store.evict(key) }
+            // Runs after what the first load queued, and before anything the
+            // next one can queue, which only starts below.
+            let seen = Task { (store.isLoading(key), store.progress[key]) }
+            store.request(key)
+            let (loading, progress) = await seen.value
+            XCTAssertTrue(loading)
+            XCTAssertEqual(progress, 0)
+            let image = try await store.resource(key)
+            XCTAssertTrue(store.isReady(key))
+            XCTAssertEqual(store.totalBytes, image.byteCount)
+        }
+    }
+
+    func testALoadOfAReplacedFileLeavesItsRestartAlone() async throws {
+        let key = ResourceKey.image("CT_tp0")
+        let store = VolumeStore(file: try SampleFile.open(Fixtures.demo), context: nil)
+        store.request(key)
+        keepTheMainActorWhileReadsEnd()
+        let seen = Task { store.isLoading(key) }
+        store.replaceFile(try SampleFile.open(Fixtures.demo))
+        let loading = await seen.value
+        XCTAssertTrue(loading)
+        let image = try await store.resource(key)
+        XCTAssertTrue(store.isReady(key))
+        XCTAssertEqual(store.totalBytes, image.byteCount)
+    }
+
+    /// Starts a load and gives it up, before or after its read ends. By the
+    /// time this returns, what the load does next is queued on the main actor.
+    private func giveUpALoad(of key: ResourceKey, in store: VolumeStore, readEnded: Bool, _ giveUp: () -> Void) {
+        store.request(key)
+        if readEnded { keepTheMainActorWhileReadsEnd() }
+        giveUp()
+        if !readEnded { keepTheMainActorWhileReadsEnd() }
+    }
+
     func testTexturesAreMadeOnceAndShared() async throws {
         guard let context = RenderContext.shared else { throw XCTSkip("no Metal device") }
         let store = VolumeStore(file: try SampleFile.open(Fixtures.demo), context: context)
