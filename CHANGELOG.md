@@ -4,6 +4,33 @@ All notable changes to medh5 Viewer are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- On macOS 26 and later the app takes the system's new design, with the toolbar
+  in capsules. macOS 14 and 15 look as before.
+- On macOS 26 and later the sidebar goes up to 320 points wide and the
+  inspector to 340 (440 and 460 before), and the document window down to 1000
+  points wide (900 before). In the new design AppKit ended the app when the
+  window got too narrow for its panels.
+- The Document window goes down to 810 points wide (620 before), where every
+  page fits, and the lists of its Timepoints and Quality pages have a fixed
+  width.
+- Snapshot mode captures the window as the window server composites it, so
+  materials and vibrant text come out as on screen, with no Screen Recording
+  permission and without showing the window. `--activate` captures it active,
+  `--widest-panels` at the tightest a user can make it, and `--size` stops at
+  the window's minimum.
+- Building takes Xcode 26 or later. `scripts/build-app.sh` and `scripts/test.sh`
+  make Swift 6.4 record the SDK the app links, which decides its design, and
+  CI takes snapshots of the built app on macOS 14, 15 and 26.
+
+### Fixed
+
+- The document window's status bar was cut off at the window's minimum height.
+- The Compare bar's timepoint wrapped letter by letter in a narrow viewer.
+
 ## [1.0.1] — 2026-10-30
 
 A patch release that fixes a crash, built on the medh5 engine 2.2.4. It reads

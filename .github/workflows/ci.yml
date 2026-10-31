@@ -58,3 +58,37 @@ jobs:
           name: medh5-viewer-${{ github.sha }}
           path: build/dist/*
           retention-days: 14
+
+  snapshots:
+    name: Snapshots (${{ matrix.runner }})
+    needs: test
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-14, macos-15, macos-26]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: medh5-viewer-${{ github.sha }}
+          path: dist
+
+      - name: Take the snapshots
+        run: |
+          sw_vers
+          ditto -x -k dist/*.zip .
+          viewer="medh5 Viewer.app/Contents/MacOS/medh5-viewer"
+          for layout in single 1x3 2x2 3d compare; do
+            "$viewer" --snapshot --demo --demo-size 64 --no-verify --out "snapshots/$layout" \
+              --layout "$layout" --size 1440x880
+            "$viewer" --snapshot --demo --demo-size 64 --no-verify --out "snapshots/$layout-narrow" \
+              --layout "$layout" --size 900x560 --widest-panels
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snapshots-${{ matrix.runner }}-${{ github.sha }}
+          path: snapshots
+          retention-days: 14
