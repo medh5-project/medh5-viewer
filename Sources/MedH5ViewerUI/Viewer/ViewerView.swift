@@ -146,6 +146,7 @@ struct ViewerControls: View {
                 Picker("Channel", selection: Binding(get: { base.channelIndex }, set: { base.channelIndex = $0 })) {
                     ForEach(Array(channels.enumerated()), id: \.offset) { i, name in Text(name).tag(i) }
                 }
+                .fillsWidth()
                 .frame(maxWidth: 200)
             }
             Spacer()
@@ -162,6 +163,7 @@ struct ViewerControls: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
+        .fillsWidth()
         .frame(width: 230)
     }
 
@@ -172,6 +174,7 @@ struct ViewerControls: View {
             HStack(spacing: 6) {
                 Text(workspace.timepoint(of: workspace.primary).map(workspace.timepointTitle) ?? "—")
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 Image(systemName: "arrow.left.and.right").foregroundStyle(.secondary)
                 Picker("Compared timepoint", selection: Binding(
                     get: { workspace.timepoint(of: compare) ?? "" },
@@ -179,6 +182,7 @@ struct ViewerControls: View {
                     ForEach(ids, id: \.self) { Text(workspace.timepointTitle($0)).tag($0) }
                 }
                 .labelsHidden()
+                .fillsWidth()
                 .frame(maxWidth: 200)
                 linkLabel
             }

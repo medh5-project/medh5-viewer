@@ -639,9 +639,22 @@ struct LabeledRow<Content: View>: View {
     var body: some View {
         HStack(spacing: 8) {
             Text(title).foregroundStyle(.secondary).frame(width: 74, alignment: .leading)
-            content
+            content.fillsWidth()
         }
         .font(.system(size: 11.5))
+    }
+}
+
+extension View {
+    /// A picker as wide as the space it is given: linked against the macOS
+    /// 26 SDK or later, it would keep the width of its content.
+    @ViewBuilder
+    func fillsWidth() -> some View {
+        if #available(macOS 26, *) {
+            buttonSizing(.flexible)
+        } else {
+            self
+        }
     }
 }
 

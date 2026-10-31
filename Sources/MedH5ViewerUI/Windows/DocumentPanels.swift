@@ -35,6 +35,8 @@ enum DocumentPanel: String, CaseIterable, Sendable {
     var minSize: NSSize {
         switch self {
         case .clinical: return NSSize(width: 860, height: 560)
+        // The widest sidebar, the widest list of a page, and its form.
+        case .document: return NSSize(width: 810, height: 420)
         default: return NSSize(width: 620, height: 420)
         }
     }

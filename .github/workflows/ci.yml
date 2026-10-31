@@ -44,17 +44,60 @@ jobs:
       - name: Third-party notices are current
         run: python3 -I scripts/third_party_notices.py --check
 
-      - name: Test everything
-        run: scripts/test.sh
-
       - name: Build the app bundle
         run: scripts/build-app.sh
 
       - name: Package
         run: scripts/package-dmg.sh
 
+      # Before the tests: when one fails, the app and its snapshots show why.
       - uses: actions/upload-artifact@v4
         with:
           name: medh5-viewer-${{ github.sha }}
           path: build/dist/*
+          retention-days: 14
+
+      - name: Test everything
+        run: scripts/test.sh
+
+  snapshots:
+    name: Snapshots (${{ matrix.runner }})
+    needs: test
+    if: ${{ !cancelled() }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-14, macos-15, macos-26]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: medh5-viewer-${{ github.sha }}
+          path: dist
+
+      - name: Take the snapshots
+        shell: bash
+        run: |
+          sw_vers
+          ditto -x -k dist/*.zip .
+          viewer="medh5 Viewer.app/Contents/MacOS/medh5-viewer"
+          demo=(--snapshot --demo --demo-size 64 --no-verify)
+          for layout in single 1x3 2x2 3d compare; do
+            "$viewer" "${demo[@]}" --out "snapshots/$layout" --layout "$layout" --size 1440x880 2>&1 | tee -a default.log
+            "$viewer" "${demo[@]}" --out "snapshots/$layout-narrow" --layout "$layout" --size 900x560 --widest-panels
+          done
+          "$viewer" "${demo[@]}" --out snapshots/dark --layout 2x2 --size 1440x880 --appearance dark
+          "$viewer" "${demo[@]}" --out snapshots/editing --layout single --size 1440x880 \
+            --inspector segment-editor --edit segment
+          if grep 'toolbar overflow' default.log; then
+            echo "::error::a window of the default size overflows its toolbar"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snapshots-${{ matrix.runner }}-${{ github.sha }}
+          path: snapshots
           retention-days: 14

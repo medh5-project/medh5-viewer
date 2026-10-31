@@ -3,8 +3,8 @@
 ## Requirements
 
 - A Mac with Apple silicon, macOS 14 or later
-- Xcode 16 or later (Swift 6) — the command line tools are enough to build,
-  Xcode itself to work in the IDE
+- Xcode 26 or later (Swift 6, the macOS 26 SDK) — the command line tools are
+  enough to build, Xcode itself to work in the IDE
 - Rust (stable, via [rustup](https://rustup.rs)) — the medh5 engine is Rust
 - CMake (`brew install cmake`) — the engine builds HDF5 from source
 
@@ -28,6 +28,12 @@ project ships) and wraps it as
 `Packages/MedH5Kit/Frameworks/MedH5Bridge.xcframework`. Rerun it after
 changing anything in `bridge/`; `scripts/build-app.sh --rebuild-bridge` does
 both.
+
+macOS picks an app's design by the SDK its binary records: the design of
+macOS 26 takes SDK 26 or later. A plain `swift build` with Swift 6.4 records
+the deployment target instead, and the app then opens in the older design on
+every system. `scripts/build-app.sh` and `scripts/test.sh` name the SDK to the
+linker, and `scripts/build-app.sh` stops if the binary records any other.
 
 ## Test
 

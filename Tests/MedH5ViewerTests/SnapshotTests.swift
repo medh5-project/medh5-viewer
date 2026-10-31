@@ -48,61 +48,86 @@ final class SnapshotTests: XCTestCase {
             XCTAssertEqual(try SnapshotOptions.parse(["--snapshot", "--out", "o", "--window", name]).auxiliaryWindow, name)
         }
         XCTAssertThrowsError(try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--window", "nope"]))
+        let plain = try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o"])
+        XCTAssertFalse(plain.activate)
+        XCTAssertFalse(plain.widestPanels)
+        let window = try SnapshotOptions.parse(["--snapshot", "--demo", "--out", "o", "--activate", "--widest-panels"])
+        XCTAssertTrue(window.activate)
+        XCTAssertTrue(window.widestPanels)
+    }
+
+    @MainActor
+    func testSizeStopsAtTheWindowsMinimum() {
+        var options = SnapshotOptions(source: .demo, outDirectory: URL(fileURLWithPath: "/tmp/x"))
+        options.size = CGSize(width: 300, height: 900)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 800), styleMask: [.titled],
+                              backing: .buffered, defer: true)
+        window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 500, height: 200)
+        XCTAssertEqual(options.contentSize(in: window), NSSize(width: 500, height: 900))
+    }
+
+    /// From macOS 26 the split views need twice the sidebar's width plus the
+    /// inspector's: more than the window has, and AppKit ends the app.
+    func testTheWidestPanelsFitTheNarrowestWindow() throws {
+        guard #available(macOS 26, *) else { throw XCTSkip("the panels take their own width before macOS 26") }
+        XCTAssertLessThanOrEqual(2 * PanelLimits.sidebarMaximum + PanelLimits.inspectorMaximum, PanelLimits.minimumWindowWidth)
+    }
+
+    /// The window's way to its tightest, in the layouts with the most to fit;
+    /// `--size` stops at the window's minimum, whatever the system.
+    func testSnapshotModeWithTheWidestPanelsInTheNarrowestWindow() throws {
+        for layout in ["single", "compare", "2x2"] {
+            let out = TemporaryDirectory("snapshot-narrow")
+            _ = try snapshot(["--layout", layout, "--size", "800x500", "--widest-panels"], to: out)
+            let window = try XCTUnwrap(NSImage(contentsOfFile: out.file("window.png").path))
+            XCTAssertEqual(window.size.width, PanelLimits.minimumWindowWidth, accuracy: 1, layout)
+        }
+    }
+
+    /// The size asked for holds when the window has to grow to it, too.
+    func testSnapshotModeWithTheWidestPanelsInALargerWindow() throws {
+        let out = TemporaryDirectory("snapshot-larger")
+        _ = try snapshot(["--layout", "single", "--size", "1600x1000", "--widest-panels"], to: out)
+        let window = try XCTUnwrap(NSImage(contentsOfFile: out.file("window.png").path))
+        XCTAssertEqual(window.size.width, 1600, accuracy: 1)
+        XCTAssertEqual(window.size.height, 1000, accuracy: 1)
+    }
+
+    /// Every toolbar item fits a window of the size the app opens at.
+    func testTheToolbarFitsTheDefaultWindow() throws {
+        let out = TemporaryDirectory("snapshot-toolbar")
+        let run = try snapshot(["--layout", "2x2", "--size", "1440x880"], to: out)
+        let window = try XCTUnwrap(NSImage(contentsOfFile: out.file("window.png").path))
+        XCTAssertEqual(window.size.width, 1440, accuracy: 1, "whatever the display's width")
+        XCTAssertFalse(run.errors.contains("toolbar overflow"), run.errors)
+    }
+
+    /// The picture is the window server's, with the materials it composites:
+    /// the window's rounded corners are transparent in it and nowhere else.
+    func testSnapshotModeCapturesWhatTheWindowServerShows() throws {
+        guard #available(macOS 14.4, *) else { throw XCTSkip("no capture of an app's own window before macOS 14.4") }
+        let out = TemporaryDirectory("snapshot-capture")
+        _ = try snapshot(["--layout", "single", "--size", "1000x700"], to: out)
+        let data = try Data(contentsOf: out.file("window.png"))
+        let image = try XCTUnwrap(NSBitmapImageRep(data: data))
+        XCTAssertEqual(try XCTUnwrap(image.colorAt(x: 0, y: 0)).alphaComponent, 0)
+        XCTAssertEqual(try XCTUnwrap(image.colorAt(x: image.pixelsWide / 2, y: 0)).alphaComponent, 1)
     }
 
     /// The snapshot mode's scripted edits drive every editing tool.
     func testSnapshotModeWithScriptedEdits() throws {
-        guard RenderContext.shared != nil else { throw XCTSkip("no Metal device") }
-        let products = Bundle(for: SnapshotTests.self).bundleURL.deletingLastPathComponent()
-        let executable = products.appendingPathComponent("medh5-viewer")
-        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
-            throw XCTSkip("the medh5-viewer executable is not built next to the tests")
-        }
-        let out = TemporaryDirectory("snapshot-edit")
-        let process = Process()
-        process.executableURL = executable
-        process.arguments = ["--snapshot", "--demo", "--demo-size", "32", "--out", out.url.path, "--layout", "single",
-                             "--inspector", "annotations", "--edit", "all", "--size", "1000x700", "--no-verify", "--timeout", "90"]
-        let stdout = Pipe(), stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-        try process.run()
-        process.waitUntilExit()
-        let printed = String(decoding: stdout.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        let errors = String(decoding: stderr.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        if process.terminationStatus != 0, errors.contains("no window server") || errors.contains("WindowServer") {
-            throw XCTSkip("no window server: \(errors)")
-        }
-        XCTAssertEqual(process.terminationStatus, 0, errors)
-        XCTAssertEqual(printed.split(separator: "\n").map { URL(fileURLWithPath: String($0)).lastPathComponent },
+        let run = try snapshot(["--layout", "single", "--inspector", "annotations", "--edit", "all", "--size", "1000x700"],
+                               to: TemporaryDirectory("snapshot-edit"))
+        XCTAssertEqual(run.printed.split(separator: "\n").map { URL(fileURLWithPath: String($0)).lastPathComponent },
                        ["window.png", "view-1.png"])
     }
 
     /// Runs the built executable in snapshot mode on a small demo.
     func testSnapshotModeWritesTheWindowAndEveryViewport() throws {
-        guard RenderContext.shared != nil else { throw XCTSkip("no Metal device") }
-        let products = Bundle(for: SnapshotTests.self).bundleURL.deletingLastPathComponent()
-        let executable = products.appendingPathComponent("medh5-viewer")
-        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
-            throw XCTSkip("the medh5-viewer executable is not built next to the tests")
-        }
         let out = TemporaryDirectory("snapshot")
-        let process = Process()
-        process.executableURL = executable
-        process.arguments = ["--snapshot", "--demo", "--demo-size", "32", "--out", out.url.path, "--layout", "2x2",
-                             "--size", "1000x700", "--no-verify", "--timeout", "90"]
-        let stdout = Pipe(), stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-        try process.run()
-        process.waitUntilExit()
-        let printed = String(decoding: stdout.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        let errors = String(decoding: stderr.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        if process.terminationStatus != 0, errors.contains("no window server") || errors.contains("WindowServer") {
-            throw XCTSkip("no window server: \(errors)")
-        }
-        XCTAssertEqual(process.terminationStatus, 0, errors)
-        let paths = printed.split(separator: "\n").map(String.init)
+        let run = try snapshot(["--layout", "2x2", "--size", "1000x700"], to: out)
+        let paths = run.printed.split(separator: "\n").map(String.init)
         XCTAssertEqual(paths.map { URL(fileURLWithPath: $0).lastPathComponent },
                        ["window.png", "view-1.png", "view-2.png", "view-3.png", "view-4.png"])
         for p in paths {
@@ -111,5 +136,32 @@ final class SnapshotTests: XCTestCase {
         }
         let window = try XCTUnwrap(NSImage(contentsOfFile: out.file("window.png").path))
         XCTAssertEqual(window.size.width, 1000, accuracy: 1)
+    }
+
+    /// The built executable in snapshot mode on a small demo: what it printed
+    /// and what it complained of, when it ended well.
+    private func snapshot(_ arguments: [String], to out: TemporaryDirectory) throws -> (printed: String, errors: String) {
+        guard RenderContext.shared != nil else { throw XCTSkip("no Metal device") }
+        let products = Bundle(for: SnapshotTests.self).bundleURL.deletingLastPathComponent()
+        let executable = products.appendingPathComponent("medh5-viewer")
+        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
+            throw XCTSkip("the medh5-viewer executable is not built next to the tests")
+        }
+        let process = Process()
+        process.executableURL = executable
+        process.arguments = ["--snapshot", "--demo", "--demo-size", "32", "--out", out.url.path, "--no-verify", "--timeout", "90"]
+            + arguments
+        let stdout = Pipe(), stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+        try process.run()
+        process.waitUntilExit()
+        let printed = String(decoding: stdout.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        let errors = String(decoding: stderr.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        if process.terminationStatus != 0, errors.contains("no window server") || errors.contains("WindowServer") {
+            throw XCTSkip("no window server: \(errors)")
+        }
+        XCTAssertEqual(process.terminationStatus, 0, errors)
+        return (printed, errors)
     }
 }

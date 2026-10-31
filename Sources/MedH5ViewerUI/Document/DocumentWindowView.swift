@@ -2,6 +2,29 @@ import SwiftUI
 import MedH5Kit
 import MedH5Render
 
+/// How wide the document window's panels can get, and how narrow the window.
+///
+/// In the design of macOS 26 and later the viewer runs under the sidebar and
+/// the inspector, and the two split views then need twice the sidebar's width
+/// plus the inspector's, and what the viewer's bars need on top. In a narrower
+/// window they overflow it, or they never settle and AppKit ends the app
+/// ("more Update Constraints in Window passes than there are views in the
+/// window"), so there the widest panels have to fit the narrowest window, and
+/// the viewer's bars count for nothing. Before macOS 26 those bars are what
+/// keeps the panels from closing the viewer.
+enum PanelLimits {
+    static var sidebarMaximum: CGFloat { overlaysViewer ? 320 : 440 }
+    static var inspectorMaximum: CGFloat { overlaysViewer ? 340 : 460 }
+    static var minimumWindowWidth: CGFloat { overlaysViewer ? 1000 : 900 }
+    /// The viewer's minimum width in the split view; nil is what it needs.
+    static var viewerMinimum: CGFloat? { overlaysViewer ? 0 : nil }
+
+    private static var overlaysViewer: Bool {
+        if #available(macOS 26, *) { return true }
+        return false
+    }
+}
+
 /// The document window's content: sidebar, viewer and inspector, with the
 /// toolbar (layout, tools, timepoint, window preset, 3-D, inspector).
 struct DocumentWindowView: View {
@@ -12,7 +35,7 @@ struct DocumentWindowView: View {
             get: { workspace.showsSidebar ? .all : .detailOnly },
             set: { workspace.showsSidebar = $0 != .detailOnly })) {
             SidebarView(workspace: workspace)
-                .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: 440)
+                .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: PanelLimits.sidebarMaximum)
         } detail: {
             VStack(spacing: 0) {
                 ForEach(workspace.readOnlyReasons, id: \.self) { reason in
@@ -25,16 +48,17 @@ struct DocumentWindowView: View {
                 }
                 ViewerView(workspace: workspace)
             }
+            .frame(minWidth: PanelLimits.viewerMinimum)
             .inspector(isPresented: $workspace.showsInspector) {
                 InspectorView(workspace: workspace)
-                    .inspectorColumnWidth(min: 270, ideal: 310, max: 460)
+                    .inspectorColumnWidth(min: 270, ideal: 310, max: PanelLimits.inspectorMaximum)
             }
         }
         .toolbar { DocumentToolbar(workspace: workspace) }
         .alert(item: $workspace.alert) { alert in
             Alert(title: Text(alert.title), message: Text(alert.message))
         }
-        .frame(minWidth: 900, minHeight: 560)
+        .frame(minWidth: PanelLimits.minimumWindowWidth)
     }
 }
 
@@ -151,8 +175,8 @@ struct TimepointMenu: View {
             }
         } label: {
             Label(current.map(workspace.timepointTitle) ?? "No timepoint", systemImage: "calendar")
-                .labelStyle(.titleAndIcon)
         }
+        .labelStyle(.titleAndIcon)
         .disabled(ids.count < 2)
         .help("The timepoint shown (⌘] and ⌘[ step through them)")
     }

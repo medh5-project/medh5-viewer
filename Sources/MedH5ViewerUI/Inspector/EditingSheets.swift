@@ -142,6 +142,7 @@ struct AddClassSheet: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .fillsWidth()
             }
             if mode == 0 {
                 LabelClassChecklist(labelSet: workspace.summary.labelSet, selection: $chosen, excluded: present)

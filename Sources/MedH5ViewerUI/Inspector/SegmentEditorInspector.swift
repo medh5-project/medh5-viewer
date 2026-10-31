@@ -115,6 +115,7 @@ struct SegmentationPickerSection: View {
                 }
                 .labelsHidden()
                 .controlSize(.small)
+                .fillsWidth()
                 if let id = active, let info = workspace.summary.annotation(id) {
                     Text(caption(id: id, info: info))
                         .font(.system(size: 10.5))
@@ -489,6 +490,7 @@ struct SegmentOperationsSection: View {
                 ForEach(SegmentOperationKind.allCases) { Text($0.title).tag($0) }
             }
             .labelsHidden()
+            .fillsWidth()
             Text(kind.help)
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
@@ -538,6 +540,7 @@ struct SegmentOperationsSection: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .fillsWidth()
             if session.operation.growInRange {
                 RangeFields(low: $session.operation.low, high: $session.operation.high, units: units) { fromWindow() }
             } else {

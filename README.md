@@ -82,7 +82,7 @@ scripts/package-dmg.sh     # → the disk image, a zip and their checksums
 ```
 
 Products go to `build/` (or, when the repository is in iCloud Drive, to a
-folder in `~/Library/Caches`; the scripts print where). Requires Xcode 16+,
+folder in `~/Library/Caches`; the scripts print where). Requires Xcode 26+,
 Rust and CMake. Details in [BUILDING.md](docs/BUILDING.md).
 
 ## License
