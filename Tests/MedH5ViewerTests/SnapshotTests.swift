@@ -74,14 +74,24 @@ final class SnapshotTests: XCTestCase {
         XCTAssertLessThanOrEqual(2 * PanelLimits.sidebarMaximum + PanelLimits.inspectorMaximum, PanelLimits.minimumWindowWidth)
     }
 
-    /// The window's way to its tightest, in the layouts with the most to fit.
+    /// The window's way to its tightest, in the layouts with the most to fit;
+    /// `--size` stops at the window's minimum, whatever the system.
     func testSnapshotModeWithTheWidestPanelsInTheNarrowestWindow() throws {
         for layout in ["single", "compare", "2x2"] {
             let out = TemporaryDirectory("snapshot-narrow")
-            _ = try snapshot(["--layout", layout, "--size", "1000x560", "--widest-panels"], to: out)
+            _ = try snapshot(["--layout", layout, "--size", "800x500", "--widest-panels"], to: out)
             let window = try XCTUnwrap(NSImage(contentsOfFile: out.file("window.png").path))
             XCTAssertEqual(window.size.width, PanelLimits.minimumWindowWidth, accuracy: 1, layout)
         }
+    }
+
+    /// The size asked for holds when the window has to grow to it, too.
+    func testSnapshotModeWithTheWidestPanelsInALargerWindow() throws {
+        let out = TemporaryDirectory("snapshot-larger")
+        _ = try snapshot(["--layout", "single", "--size", "1600x1000", "--widest-panels"], to: out)
+        let window = try XCTUnwrap(NSImage(contentsOfFile: out.file("window.png").path))
+        XCTAssertEqual(window.size.width, 1600, accuracy: 1)
+        XCTAssertEqual(window.size.height, 1000, accuracy: 1)
     }
 
     /// Every toolbar item fits a window of the size the app opens at.

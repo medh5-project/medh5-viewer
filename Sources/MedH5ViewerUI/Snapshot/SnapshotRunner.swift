@@ -107,7 +107,7 @@ final class SnapshotRunner {
             content.layoutSubtreeIfNeeded()
         }
         var current = content.frame.size
-        while current.width > size.width || current.height > size.height {
+        while current != size {
             current = NSSize(width: max(size.width, current.width - 8), height: max(size.height, current.height - 8))
             window.setContentSize(current)
             window.displayIfNeeded()
