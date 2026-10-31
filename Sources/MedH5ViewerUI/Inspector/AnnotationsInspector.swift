@@ -60,6 +60,7 @@ struct AnnotationPickerSection: View {
             }
             .labelsHidden()
             .controlSize(.small)
+            .fillsWidth()
             Text(caption(listed))
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)

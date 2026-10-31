@@ -29,7 +29,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         window.tabbingMode = .automatic
         window.tabbingIdentifier = "medh5-document"
         window.setContentSize(NSSize(width: 1440, height: 880))
-        window.minSize = NSSize(width: 900, height: 560)
+        window.minSize = NSSize(width: PanelLimits.minimumWindowWidth, height: 560)
         window.isRestorable = false
         super.init(window: window)
         window.delegate = self

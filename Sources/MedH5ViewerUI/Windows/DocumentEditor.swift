@@ -398,6 +398,10 @@ struct DocumentEditorView: View {
                 Divider()
                 footer
             }
+            // From macOS 26 the page runs under the sidebar, and the split view
+            // counts a sidebar's width twice: with what a page's panes need on
+            // top, it outgrows the window and pushes the sidebar out of it.
+            .frame(minWidth: 0)
         }
         .onChange(of: model.workspace.auxiliary.editsRevision) { _, _ in model.sync() }
         .onChange(of: model.workspace.summary.contentID) { _, _ in model.sync() }
@@ -564,7 +568,7 @@ private struct TimepointsForm: View {
     @Bindable var model: DocumentEditorModel
 
     var body: some View {
-        HSplitView {
+        HStack(spacing: 0) {
             VStack(spacing: 0) {
                 List(selection: $model.selectedTimepoint) {
                     ForEach(Array(model.timepoints.enumerated()), id: \.offset) { i, tp in
@@ -592,7 +596,8 @@ private struct TimepointsForm: View {
                 .padding(6)
                 .disabled(model.isReadOnly)
             }
-            .frame(minWidth: 180, idealWidth: 220, maxWidth: 300)
+            .frame(width: 240)
+            Divider()
             Group {
                 if let i = model.selectedTimepoint, i < model.timepoints.count {
                     TimepointDetail(model: model, index: i)
@@ -658,7 +663,7 @@ private struct QualityForm: View {
     @State private var newKey = ""
 
     var body: some View {
-        HSplitView {
+        HStack(spacing: 0) {
             VStack(spacing: 0) {
                 List(selection: $model.selectedQuality) {
                     ForEach(model.qualityKeys, id: \.self) { key in
@@ -688,7 +693,8 @@ private struct QualityForm: View {
                 .padding(6)
                 .disabled(model.isReadOnly)
             }
-            .frame(minWidth: 200, idealWidth: 240, maxWidth: 320)
+            .frame(width: 240)
+            Divider()
             Group {
                 if let key = model.selectedQuality, model.qualityKeys.contains(key) {
                     QualityDetail(model: model, key: key)
