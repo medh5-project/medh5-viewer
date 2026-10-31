@@ -29,6 +29,30 @@ final class VolumeStoreTests: XCTestCase {
         XCTAssertNotNil(store.failure(.image("no_such_image")))
     }
 
+    func testALoadReachesItsCallerOnlyAfterTheStoreRecordedIt() async throws {
+        let store = VolumeStore(file: try SampleFile.open(Fixtures.demo), context: nil)
+        store.request(.image("CT_tp0"))
+        store.request(.image("no_such_image"))
+        // Both reads end while this test keeps the main actor, so the store,
+        // which records a load there, has recorded neither yet.
+        keepTheMainActorWhileReadsEnd()
+        let image = try await store.resource(.image("CT_tp0"))
+        XCTAssertTrue(store.isReady(.image("CT_tp0")))
+        XCTAssertEqual(store.totalBytes, image.byteCount)
+        do {
+            _ = try await store.resource(.image("no_such_image"))
+            XCTFail("expected a failure")
+        } catch {}
+        XCTAssertNotNil(store.failure(.image("no_such_image")))
+        XCTAssertTrue(store.isIdle)
+    }
+
+    /// Far longer than a read of the demo sample takes. Were a read slower
+    /// still, the test above would prove less, but it would not fail.
+    private func keepTheMainActorWhileReadsEnd() {
+        Thread.sleep(forTimeInterval: 0.25)
+    }
+
     func testTheBudgetEvictsLeastRecentlyUsedResourcesNoViewUses() async throws {
         let store = VolumeStore(file: try SampleFile.open(Fixtures.demo), context: nil)
         var budget = Int.max

@@ -148,16 +148,16 @@ final class VolumeStore {
         let reporter = ProgressThrottle { fraction in
             Task { @MainActor in owner.store?.setProgress(key, fraction, generation: generation) }
         }
-        let task = Task.detached(priority: .userInitiated) { () async throws -> any StoredResource in
-            try await loader.load(key, store: owner.store, progress: reporter.report)
-        }
-        tasks[key] = task
-        Task { [weak self] in
+        // The task ends only once the store has recorded the outcome: whoever
+        // awaits it (`resource`) finds the resource ready and counted.
+        tasks[key] = Task.detached(priority: .userInitiated) { () async throws -> any StoredResource in
             do {
-                let value = try await task.value
-                self?.finish(key, value, generation: generation)
+                let value = try await loader.load(key, store: owner.store, progress: reporter.report)
+                await owner.store?.finish(key, value, generation: generation)
+                return value
             } catch {
-                self?.fail(key, error, generation: generation)
+                await owner.store?.fail(key, error, generation: generation)
+                throw error
             }
         }
     }
