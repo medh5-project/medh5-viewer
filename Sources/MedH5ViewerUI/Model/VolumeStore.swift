@@ -47,10 +47,12 @@ final class VolumeStore {
 
     @ObservationIgnored private(set) var file: SampleFile
     @ObservationIgnored let context: RenderContext?
-    @ObservationIgnored private var tasks: [ResourceKey: Task<any StoredResource, Error>] = [:]
+    /// The load of each key in `.loading`. A load not here was given up (its
+    /// resource evicted or replaced, the document closed) and records nothing.
+    @ObservationIgnored private var loads: [ResourceKey: Load] = [:]
     @ObservationIgnored private var lastUsed: [ResourceKey: UInt64] = [:]
     @ObservationIgnored private var clock: UInt64 = 0
-    @ObservationIgnored private var generation = 0
+    @ObservationIgnored private var loadsStarted = 0
 
     init(file: SampleFile, context: RenderContext? = RenderContext.shared) {
         self.file = file
@@ -128,8 +130,8 @@ final class VolumeStore {
             throw StoreError.failed(key, message)
         case .loading?, nil:
             request(key)
-            guard let task = tasks[key] else { throw StoreError.failed(key, "not loading") }
-            return try await task.value
+            guard let load = loads[key] else { throw StoreError.failed(key, "not loading") }
+            return try await load.task.value
         }
     }
 
@@ -143,44 +145,46 @@ final class VolumeStore {
         states[key] = .loading
         if key.readsVoxels { progress[key] = 0 }
         let loader = ResourceLoader(file: file, context: context)
-        let generation = self.generation
+        loadsStarted += 1
+        let id = loadsStarted
         let owner = WeakStore(self)
         let reporter = ProgressThrottle { fraction in
-            Task { @MainActor in owner.store?.setProgress(key, fraction, generation: generation) }
+            Task { @MainActor in owner.store?.setProgress(key, fraction, load: id) }
         }
+        // The task ends only once the store has recorded the outcome: whoever
+        // awaits it (`resource`) finds the resource ready and counted, unless
+        // the store gave the load up meanwhile.
         let task = Task.detached(priority: .userInitiated) { () async throws -> any StoredResource in
-            try await loader.load(key, store: owner.store, progress: reporter.report)
-        }
-        tasks[key] = task
-        Task { [weak self] in
             do {
-                let value = try await task.value
-                self?.finish(key, value, generation: generation)
+                let value = try await loader.load(key, store: owner.store, progress: reporter.report)
+                await owner.store?.finish(key, value, load: id)
+                return value
             } catch {
-                self?.fail(key, error, generation: generation)
+                await owner.store?.fail(key, error, load: id)
+                throw error
             }
         }
+        loads[key] = Load(id: id, task: task)
     }
 
-    private func setProgress(_ key: ResourceKey, _ fraction: Double, generation: Int) {
-        guard generation == self.generation, case .loading? = states[key] else { return }
+    private func setProgress(_ key: ResourceKey, _ fraction: Double, load: Int) {
+        guard loads[key]?.id == load else { return }
         progress[key] = fraction
     }
 
-    private func finish(_ key: ResourceKey, _ value: any StoredResource, generation: Int) {
-        guard generation == self.generation else { return }
-        tasks[key] = nil
+    private func finish(_ key: ResourceKey, _ value: any StoredResource, load: Int) {
+        guard loads[key]?.id == load else { return }
+        loads[key] = nil
         progress[key] = nil
-        if case .ready(let old)? = states[key] { totalBytes -= old.byteCount }
         states[key] = .ready(value)
         totalBytes += value.byteCount
         touch(key)
         enforceBudget()
     }
 
-    private func fail(_ key: ResourceKey, _ error: Error, generation: Int) {
-        guard generation == self.generation else { return }
-        tasks[key] = nil
+    private func fail(_ key: ResourceKey, _ error: Error, load: Int) {
+        guard loads[key]?.id == load else { return }
+        loads[key] = nil
         progress[key] = nil
         if error is CancellationError || (error as? MedH5Error)?.isCancellation == true {
             states[key] = nil
@@ -232,8 +236,8 @@ final class VolumeStore {
     /// Holds a resource made in memory as if it had been loaded (a
     /// segmentation created in the window, not in the file yet).
     func put(_ key: ResourceKey, _ resource: any StoredResource) {
-        tasks[key]?.cancel()
-        tasks[key] = nil
+        loads[key]?.task.cancel()
+        loads[key] = nil
         progress[key] = nil
         if case .ready(let old)? = states[key] { totalBytes -= old.byteCount }
         states[key] = .ready(resource)
@@ -248,8 +252,8 @@ final class VolumeStore {
             totalBytes -= r.byteCount
             evictionCount += 1
         }
-        tasks[key]?.cancel()
-        tasks[key] = nil
+        loads[key]?.task.cancel()
+        loads[key] = nil
         states[key] = nil
         progress[key] = nil
         lastUsed[key] = nil
@@ -262,9 +266,8 @@ final class VolumeStore {
 
     /// Cancels every load and forgets every resource (the document closes).
     func cancelAll() {
-        generation += 1
-        for task in tasks.values { task.cancel() }
-        tasks.removeAll()
+        for load in loads.values { load.task.cancel() }
+        loads.removeAll()
         states.removeAll()
         progress.removeAll()
         lastUsed.removeAll()
@@ -276,14 +279,13 @@ final class VolumeStore {
     /// are unchanged, or replaced by what the editor holds.
     func replaceFile(_ newFile: SampleFile) {
         file = newFile
-        for task in tasks.values { task.cancel() }
-        tasks.removeAll()
+        for load in loads.values { load.task.cancel() }
+        loads.removeAll()
         let loading = states.filter { if case .loading = $0.value { return true } else { return false } }.map(\.key)
         for key in loading {
             states[key] = nil
             progress[key] = nil
         }
-        generation += 1
         for key in loading { start(key) }
     }
 }
@@ -302,6 +304,12 @@ enum StoreError: Error, CustomStringConvertible {
         case .unsupported(let m): return m
         }
     }
+}
+
+/// A load in flight. `id` tells it from every other load, of its key too.
+private struct Load {
+    let id: Int
+    let task: Task<any StoredResource, Error>
 }
 
 /// A weak reference to the store that crosses into background tasks.
