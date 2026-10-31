@@ -86,7 +86,10 @@ final class SnapshotTests: XCTestCase {
 
     /// Every toolbar item fits a window of the size the app opens at.
     func testTheToolbarFitsTheDefaultWindow() throws {
-        let run = try snapshot(["--layout", "2x2", "--size", "1440x880"], to: TemporaryDirectory("snapshot-toolbar"))
+        let out = TemporaryDirectory("snapshot-toolbar")
+        let run = try snapshot(["--layout", "2x2", "--size", "1440x880"], to: out)
+        let window = try XCTUnwrap(NSImage(contentsOfFile: out.file("window.png").path))
+        XCTAssertEqual(window.size.width, 1440, accuracy: 1, "whatever the display's width")
         XCTAssertFalse(run.errors.contains("toolbar overflow"), run.errors)
     }
 

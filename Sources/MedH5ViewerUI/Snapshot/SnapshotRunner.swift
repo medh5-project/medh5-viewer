@@ -66,6 +66,7 @@ final class SnapshotRunner {
         guard let window = doc.windowControllers.first?.window else {
             throw SnapshotError("the document made no window")
         }
+        (window as? DocumentWindow)?.fitsTheScreen = false
         let size = options.contentSize(in: window)
         if !options.widestPanels { window.setContentSize(size) }
         window.setFrameOrigin(NSPoint(x: 40, y: 40))

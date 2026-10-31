@@ -79,9 +79,12 @@ jobs:
       - name: Take the snapshots
         run: |
           sw_vers
-          system_profiler SPDisplaysDataType | grep -E 'Resolution|Main Display'
           ditto -x -k dist/*.zip .
           viewer="medh5 Viewer.app/Contents/MacOS/medh5-viewer"
+          for width in 1000 1060 1120 1180 1240 1300 1360 1440; do
+            echo "width $width"
+            "$viewer" --snapshot --demo --demo-size 32 --no-verify --out "sweep/$width" --layout 2x2 --size "${width}x880" || true
+          done
           for layout in single 1x3 2x2 3d compare; do
             "$viewer" --snapshot --demo --demo-size 64 --no-verify --out "snapshots/$layout" \
               --layout "$layout" --size 1440x880
@@ -93,5 +96,7 @@ jobs:
         if: always()
         with:
           name: snapshots-${{ matrix.runner }}-${{ github.sha }}
-          path: snapshots
+          path: |
+            snapshots
+            sweep
           retention-days: 14
