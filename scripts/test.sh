@@ -37,6 +37,6 @@ for package in MedH5Core MedH5Editing MedH5Render MedH5Kit; do
 done
 
 step "app: swift test"
-swift test --package-path "$ROOT" --scratch-path "$(swift_scratch app)" -c "$SWIFT_CONFIG"
+swift test --package-path "$ROOT" --scratch-path "$(swift_scratch app)" -c "$SWIFT_CONFIG" "${SWIFT_LINK_SDK[@]}"
 
 step "all suites passed"

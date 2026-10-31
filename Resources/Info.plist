@@ -32,11 +32,6 @@
 	<true/>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
-	<!-- The interface is laid out in the design before macOS 26. A build linked
-	     against the macOS 26 SDK or later, as CI's is, would otherwise take the
-	     new one, which redraws the toolbar, the sidebar and the inspector. -->
-	<key>UIDesignRequiresCompatibility</key>
-	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Puyang Wang. MIT License. Built on the medh5 engine __ENGINE_VERSION__.</string>
 	<key>CFBundleDocumentTypes</key>

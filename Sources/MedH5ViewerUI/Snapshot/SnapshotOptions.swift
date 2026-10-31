@@ -15,7 +15,7 @@ public struct SnapshotOptions: Equatable {
     public var source: Source
     public var outDirectory: URL
     public var layout: ViewerLayout?
-    /// The window's content size in points.
+    /// The window's content size in points, no smaller than its minimum.
     public var size = CGSize(width: 1600, height: 1000)
     public var appearance: NSAppearance.Name?
     /// A sidebar item to select (id, object id or title).
@@ -33,6 +33,12 @@ public struct SnapshotOptions: Equatable {
     public var timeout: TimeInterval = 120
     /// Whether to run the integrity check (on by default, as on open).
     public var verify = true
+    /// Makes the app active for the capture: the window looks as it does
+    /// in use, and the keyboard focus leaves the app it was in for a moment.
+    public var activate = false
+    /// Drags the panels to their widest in a window of the default size,
+    /// then the window in to `size`, as a user would (QA: `PanelLimits`).
+    public var widestPanels = false
     public var hideSidebar = false
     public var hideInspector = false
     /// The view made active (its stack shows in the Layers tab).
@@ -58,6 +64,12 @@ public struct SnapshotOptions: Equatable {
         self.outDirectory = outDirectory
     }
 
+    /// `size`, for a window that goes no smaller than its minimum.
+    func contentSize(in window: NSWindow) -> NSSize {
+        let least = window.contentRect(forFrameRect: NSRect(origin: .zero, size: window.minSize)).size
+        return NSSize(width: max(size.width, least.width), height: max(size.height, least.height))
+    }
+
     static let usage = """
     usage: medh5-viewer [file.medh5 …]
            medh5-viewer --snapshot <file.medh5 | --demo> --out <dir> [options]
@@ -67,7 +79,8 @@ public struct SnapshotOptions: Equatable {
     window) and <dir>/view-<n>.png (each viewport), prints their paths, and exits.
 
       --layout single|1x3|2x2|3d|compare   the viewer layout (default: Preferences)
-      --size WxH                           window content size in points (1600x1000)
+      --size WxH                           window content size in points (1600x1000), no smaller
+                                           than the window's minimum
       --appearance dark|light              the window chrome's appearance
       --select <item>                      select a sidebar item (id, object or title)
       --inspector layers|segment-editor|annotations|measurements|info
@@ -75,10 +88,14 @@ public struct SnapshotOptions: Equatable {
       --overlays all|<id,id,…>             add annotations as overlays
       --plane axial|coronal|sagittal       the plane of the single view / compare
       --active <view>                      the active view: axial, coronal, sagittal, 3d, left, right
-      --scale <n>                          pixels per point of the PNGs (1)
+      --scale <n>                          pixels per point of the PNGs (1); the window's chrome is
+                                           no sharper than the display it is on
       --demo-size <n>                      voxels per axis of the demo sample (128)
       --no-sidebar, --no-inspector         hide a panel
+      --widest-panels                      drag the panels to their widest, then the window to --size
       --no-verify                          skip the integrity check
+      --activate                           capture the window active, as in use (without it, as a
+                                           window in the background); takes the keyboard focus briefly
       --timeout <seconds>                  give up after this long (120)
       --window welcome|settings[-editing…] capture that window instead of a document (a Settings
                                            pane: settings-general, -rendering, -editing, -performance)
@@ -211,6 +228,8 @@ public struct SnapshotOptions: Equatable {
                 guard EditScript.names.contains(v) else { throw ParseError(description: "unknown edit script \(v)") }
                 o.editScript = v
             case "--no-verify": o.verify = false
+            case "--activate": o.activate = true
+            case "--widest-panels": o.widestPanels = true
             case "--no-sidebar": o.hideSidebar = true
             case "--no-inspector": o.hideInspector = true
             default:

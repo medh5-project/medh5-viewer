@@ -1,9 +1,12 @@
 import AppKit
+import ScreenCaptureKit
 
 /// Captures a window as the user sees it, without screen recording: the
-/// AppKit/SwiftUI chrome drawn with `cacheDisplay`, each Metal viewport's own
-/// offscreen render composited at its frame, and the viewport's text
-/// overlay drawn again on top.
+/// window server's picture of the window, which an app may take of its own
+/// windows and which alone shows materials and vibrant text (`cacheDisplay`
+/// draws those wrongly, and where the window server refuses, it is what
+/// remains), each Metal viewport's own offscreen render composited at its
+/// frame, and the viewport's text overlay drawn again on top.
 @MainActor
 enum WindowCapture {
     struct Viewport {
@@ -18,7 +21,24 @@ enum WindowCapture {
         var viewports: [CGImage]
     }
 
-    static func capture(window: NSWindow, scale: CGFloat, viewports: [Viewport]) throws -> Result {
+    /// Orders a window in where the window server composites it and nobody
+    /// sees it: under the desktop, out of reach of input meant for other apps
+    /// (scrolling, clicks) too. A transparent window would come out blank.
+    static func orderInUnseen(_ window: NSWindow) {
+        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) - 1)
+        window.ignoresMouseEvents = true
+        window.orderFrontRegardless()
+    }
+
+    /// Makes the window the active app's key window, and waits for it to
+    /// redraw so.
+    static func activate(_ window: NSWindow) async throws {
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKey()
+        try await Task.sleep(nanoseconds: 500_000_000)
+    }
+
+    static func capture(window: NSWindow, scale: CGFloat, viewports: [Viewport]) async throws -> Result {
         guard let frameView = window.contentView?.superview ?? window.contentView else {
             throw SnapshotError("the window has no view")
         }
@@ -30,12 +50,17 @@ enum WindowCapture {
                                       bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
         else { throw SnapshotError("could not make a \(width)×\(height) bitmap") }
 
-        // The window background, then the chrome.
-        context.setFillColor((window.backgroundColor ?? .windowBackgroundColor).usingColorSpace(.sRGB)?.cgColor
-                             ?? CGColor(gray: 0.9, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        if let chrome = render(frameView, rect: bounds, scale: scale) {
-            context.draw(chrome, in: CGRect(x: 0, y: 0, width: width, height: height))
+        let whole = CGRect(x: 0, y: 0, width: width, height: height)
+        if let composite = await composite(of: window, width: width, height: height) {
+            context.draw(composite, in: whole)
+        } else {
+            // The window background, then the chrome.
+            context.setFillColor((window.backgroundColor ?? .windowBackgroundColor).usingColorSpace(.sRGB)?.cgColor
+                                 ?? CGColor(gray: 0.9, alpha: 1))
+            context.fill(whole)
+            if let chrome = render(frameView, rect: bounds, scale: scale) {
+                context.draw(chrome, in: whole)
+            }
         }
 
         // The viewports: Metal image, then the overlay.
@@ -60,6 +85,30 @@ enum WindowCapture {
             return image.cropping(to: top)
         }
         return Result(window: image, viewports: crops)
+    }
+
+    /// The window as the window server composites it, with transparent
+    /// corners; nil before macOS 14.4 and where it is refused.
+    private static func composite(of window: NSWindow, width: Int, height: Int) async -> CGImage? {
+        guard #available(macOS 14.4, *) else { return nil }
+        do {
+            let content = try await SCShareableContent.currentProcess
+            let id = CGWindowID(window.windowNumber)
+            guard let target = content.windows.first(where: { $0.windowID == id }) else {
+                throw SnapshotError("the window server does not list the window")
+            }
+            let configuration = SCStreamConfiguration()
+            configuration.width = width
+            configuration.height = height
+            configuration.showsCursor = false
+            configuration.ignoreShadowsSingleWindow = true
+            return try await SCScreenshotManager.captureImage(
+                contentFilter: SCContentFilter(desktopIndependentWindow: target), configuration: configuration)
+        } catch {
+            let why = (error as? SnapshotError)?.message ?? error.localizedDescription
+            Log.error("snapshot: the window server gave no picture, drawing the window instead: \(why)")
+            return nil
+        }
     }
 
     /// One viewport as it looks: its Metal render with its text overlay on

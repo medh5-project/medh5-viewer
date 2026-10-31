@@ -83,17 +83,18 @@ struct AuxiliarySnapshot {
             throw SnapshotError("unknown window \(name)")
         }
         if let appearance = options.appearance { window.appearance = NSAppearance(named: appearance) }
-        if options.size != SnapshotOptions(source: .demo, outDirectory: options.outDirectory).size {
-            window.setContentSize(options.size)
-        }
+        let resized = options.size != SnapshotOptions(source: .demo, outDirectory: options.outDirectory).size
+        let size = options.contentSize(in: window)
+        if resized, !options.widestPanels { window.setContentSize(size) }
         window.setFrameOrigin(NSPoint(x: 40, y: 40))
-        window.alphaValue = 0
-        window.orderFrontRegardless()
+        WindowCapture.orderInUnseen(window)
         try await Task.sleep(nanoseconds: 900_000_000)
+        if resized, options.widestPanels { try await SnapshotRunner.dragPanelsWideAndNarrow(window, to: size) }
         window.contentView?.layoutSubtreeIfNeeded()
         window.displayIfNeeded()
         try await Task.sleep(nanoseconds: 300_000_000)
         window.displayIfNeeded()
+        if options.activate { try await WindowCapture.activate(window) }
         let image = try await capture(window)
         let url = options.outDirectory.appendingPathComponent("window.png")
         try ImageExport.writePNG(image, to: url)
@@ -145,7 +146,7 @@ struct AuxiliarySnapshot {
     /// The window as drawn, with any web view's page composited at its frame
     /// (a web view draws out of process, so `cacheDisplay` leaves it blank).
     private func capture(_ window: NSWindow) async throws -> CGImage {
-        let base = try WindowCapture.capture(window: window, scale: options.scale, viewports: []).window
+        let base = try await WindowCapture.capture(window: window, scale: options.scale, viewports: []).window
         let webViews = Self.webViews(in: window.contentView)
         guard !webViews.isEmpty, let frameView = window.contentView?.superview ?? window.contentView else { return base }
         let scale = options.scale

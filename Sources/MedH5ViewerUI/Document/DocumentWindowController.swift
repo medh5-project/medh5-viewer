@@ -29,7 +29,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSMe
         window.tabbingMode = .automatic
         window.tabbingIdentifier = "medh5-document"
         window.setContentSize(NSSize(width: 1440, height: 880))
-        window.minSize = NSSize(width: 900, height: 560)
+        window.minSize = NSSize(width: PanelLimits.minimumWindowWidth, height: 560)
         window.isRestorable = false
         super.init(window: window)
         window.delegate = self
@@ -288,7 +288,24 @@ final class WindowPresetBox: NSObject {
 
 /// The document window class (its own type so the snapshot runner can find
 /// document windows).
-final class DocumentWindow: NSWindow {}
+final class DocumentWindow: NSWindow {
+    /// Off for snapshots: a window of any size, whatever the display (CI's
+    /// is 1024 points wide).
+    var fitsTheScreen = true
+
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        fitsTheScreen ? super.constrainFrameRect(frameRect, to: screen) : frameRect
+    }
+
+    /// Stays hidden: on macOS 15 and 26 SwiftUI's toolbar makes it visible
+    /// again, and the title takes its items' width. `toolbar(removing: .title)`
+    /// is not the way: linked against an SDK before macOS 26, as a plain
+    /// `swift build` with Swift 6.4 is, the app ends there on macOS 27.
+    override var titleVisibility: NSWindow.TitleVisibility {
+        get { .hidden }
+        set { super.titleVisibility = .hidden }
+    }
+}
 
 enum MenuValidation {
     /// Whether the key window's first responder is editing text (single-key
