@@ -79,8 +79,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # A release page shows every line break in its notes, so the section's
+          # wrapped lines are joined.
           NOTES="$(awk -v v="$(cat VERSION | tr -d '[:space:]')" '
-            $0 ~ "^## \\[?"v { found=1; next } found && /^## / { exit } found { print }' CHANGELOG.md)"
+            $0 ~ "^## \\[?"v { found=1; next } found && /^## / { exit } !found { next }
+            /^$/ || /^#+ / { if (line != "") print line; line = ""; print; next }
+            /^- / { if (line != "") print line; line = $0; next }
+            { sub(/^ +/, ""); line = (line == "" ? $0 : line " " $0) }
+            END { if (line != "") print line }' CHANGELOG.md)"
           # A re-run (or a release made by hand first) replaces the files.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" build/dist/* --clobber
