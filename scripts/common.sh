@@ -36,3 +36,11 @@ APP_BUNDLE="$BUILD_ROOT/medh5 Viewer.app"
 # The scratch directory `swift build/test --scratch-path` uses for a package
 # ("app" for the root package, or a name under Packages/).
 swift_scratch() { printf '%s/swift/%s' "$BUILD_ROOT" "$1"; }
+
+# For `swift build/test` of the app: names the SDK to clang when linking.
+# Swift 6.4's build system links with no SDKROOT in the environment, and clang
+# then records the deployment target as the SDK's version, which is what AppKit
+# and SwiftUI choose the design by: the app would look like macOS 14 on every
+# system, and unlike what the same sources give with CI's Swift 6.3.
+SWIFT_LINK_SDK=(-Xswiftc -Xclang-linker -Xswiftc -isysroot
+                -Xswiftc -Xclang-linker -Xswiftc "$(xcrun --sdk macosx --show-sdk-path)")

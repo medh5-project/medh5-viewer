@@ -46,7 +46,7 @@ fi
 
 step "Building the app ($CONFIG)"
 SCRATCH="$(swift_scratch app)"
-swift build --package-path "$ROOT" --scratch-path "$SCRATCH" -c "$CONFIG" --product "$EXECUTABLE"
+swift build --package-path "$ROOT" --scratch-path "$SCRATCH" -c "$CONFIG" --product "$EXECUTABLE" "${SWIFT_LINK_SDK[@]}"
 BIN_DIR="$(swift build --package-path "$ROOT" --scratch-path "$SCRATCH" -c "$CONFIG" --show-bin-path)"
 
 step "Assembling $APP_NAME.app $VERSION ($BUILD_NUMBER), engine $ENGINE_VERSION"
@@ -54,6 +54,12 @@ APP="$APP_BUNDLE"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/$EXECUTABLE" "$APP/Contents/MacOS/$EXECUTABLE"
+SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+LINKED_SDK="$(xcrun vtool -show-build "$APP/Contents/MacOS/$EXECUTABLE" | awk '$1 == "sdk" { print $2 }')"
+if [[ "$LINKED_SDK" != "$SDK_VERSION" ]]; then
+  echo "build-app: the app records SDK $LINKED_SDK, not $SDK_VERSION: it would not get this SDK's design" >&2
+  exit 1
+fi
 sed -e "s/__VERSION__/$VERSION/g" \
     -e "s/__BUILD__/$BUILD_NUMBER/g" \
     -e "s/__ENGINE_VERSION__/$ENGINE_VERSION/g" \
